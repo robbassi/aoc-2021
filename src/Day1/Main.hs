@@ -16,7 +16,7 @@ interpolate report@(_:_:_:_) = interpolate' report
   where
     interpolate' (x1:x2:x3:xs) = (x1+x2+x3) : interpolate' (x2:x3:xs)
     interpolate' xs = []
-interpolate _ = error "invariant violated: input too small"
+interpolate _ = []
 
 main :: IO ()
 main = do
