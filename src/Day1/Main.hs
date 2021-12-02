@@ -7,7 +7,9 @@ numIncreases [] = 0
 numIncreases [_] = 0
 numIncreases (x:xs) = snd $ foldl f (x, 0) xs
   where
-    f (x1, n) x2 = (x2, if x2 > x1 then succ n else n)
+    f (x1, n) x2
+      | x2 > x1 = (x2, succ n)
+      | otherwise = (x2, n) 
 
 interpolate :: SonarSweepReport -> SonarSweepReport
 interpolate report@(_:_:_:_) = interpolate' report
