@@ -1,4 +1,6 @@
 module Main where
+import System.IO
+import Control.Monad
 
 type SonarSweepReport = [Int]
 
@@ -11,12 +13,19 @@ numIncreases (x : xs) = snd $ foldl f (x, 0) xs
       | x2 > x1 = (x2, succ n)
       | otherwise = (x2, n)
 
-interpolate :: SonarSweepReport -> SonarSweepReport
-interpolate (x1 : x2 : x3 : xs) = (x1 + x2 + x3) : interpolate (x2 : x3 : xs)
-interpolate _ = []
+smooth :: Int -> SonarSweepReport -> SonarSweepReport
+smooth n xs = map sum $ windowed n xs
+
+windowed :: Int -> [a] -> [[a]]
+windowed n [] = []
+windowed n xs = windowed' (length xs) n xs
+  where
+    -- Cuts off the tail sub lists that are shorter than the window size
+    windowed' cutoff n xs = if cutoff < n then [] else take n xs : windowed' (cutoff - 1) n (tail xs)
 
 main :: IO ()
 main = do
   let parse = fmap read . lines
-  input <- parse <$> getContents
-  print $ numIncreases $ interpolate input
+  handle <- openFile "input.txt" ReadMode
+  contents <- hGetContents handle
+  print $ numIncreases $ smooth 3 (parse contents)
