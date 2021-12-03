@@ -26,6 +26,8 @@ windowed n xs = windowed' (length xs) n xs
 main :: IO ()
 main = do
   let parse = fmap read . lines
+  let windowSize = 3
   handle <- openFile "input.txt" ReadMode
   contents <- hGetContents handle
-  print $ numIncreases $ smooth 3 (parse contents)
+  print $ numIncreases $ smooth windowSize (parse contents)
+
