@@ -1,14 +1,11 @@
 module Main where
-import System.IO
-import Control.Monad
-
+import Common
 import Day1
 
 main :: IO ()
 main = do
   let parse = fmap read . lines
   let windowSize = 3
-  handle <- openFile "input.txt" ReadMode
-  contents <- hGetContents handle
-  print $ numIncreases $ smooth windowSize (parse contents)
-
+  contents <- readInput "src/Day1/input.txt"
+  let result = numIncreases $ smooth windowSize (parse contents)
+  if result == 1127 then print result else print "FAIL"

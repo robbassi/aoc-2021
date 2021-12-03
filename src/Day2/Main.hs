@@ -1,15 +1,13 @@
 module Main where
 
-import Control.Monad
-import System.IO
-
+import Common
 import Day2
 
 
 main :: IO ()
 main = do
   let start = Position 0 0 0
-  handle <- openFile "input.txt" ReadMode
-  contents <- hGetContents handle
-  let Position {..} = calculatePosition start $ parseCommands (lines contents)
-  print $ distance * depth
+  input <- readInput "src/Day2/input.txt"
+  let Position {..} = calculatePosition start $ parseCommands (lines input)
+  let result = distance * depth
+  if result == 1963088820 then print result else print "FAIL"
