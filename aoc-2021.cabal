@@ -32,3 +32,14 @@ executable aoc-day2
     Day2
   default-extensions:
     RecordWildCards
+
+executable aoc-day3
+  hs-source-dirs:      src
+  main-is:             Day3/Main.hs
+  default-language:    Haskell2010
+  build-depends:       base >= 4.7 && < 5, matrix, vector
+  other-modules:
+    Common
+    Day3
+  -- default-extensions:
+    -- RecordWildCards
