@@ -12,7 +12,7 @@ type ReportCol = V.Vector Int
 type BinList = [Int]
 
 parseLine :: String -> BinList
-parseLine line = map (read . (: "")) line :: BinList
+parseLine = map (read . (: ""))
 
 parseReport :: [String] -> Report
 parseReport = M.fromLists . map parseLine
@@ -52,21 +52,20 @@ prune index int report = M.fromLists $ map V.toList $ filter match (rows report)
   where
     match row = row V.! (index - 1) /= int
 
-oxygenGeneratorRating :: Report -> Int
-oxygenGeneratorRating report = inner 1 report
+computeRating :: (ReportCol -> Int) -> Report -> Int
+computeRating bitToPrune report = inner 1 report
   where
     inner :: Int -> Report -> Int
-    inner index report = if M.nrows report == 1 
-      then toDecimal $ M.toList report
-      else inner (index + 1) (prune index (leastCommonBit (M.getCol index report)) report)
+    inner index report =
+      if M.nrows report == 1
+        then toDecimal $ M.toList report
+        else inner (index + 1) (prune index (bitToPrune (M.getCol index report)) report)
+
+oxygenGeneratorRating :: Report -> Int
+oxygenGeneratorRating = computeRating leastCommonBit
 
 co2ScrubberRating :: Report -> Int
-co2ScrubberRating report = inner 1 report
-  where
-    inner :: Int -> Report -> Int
-    inner index report = if M.nrows report == 1 
-      then toDecimal $ M.toList report
-      else inner (index + 1) (prune index (mostCommonBit (M.getCol index report)) report)
+co2ScrubberRating = computeRating mostCommonBit
 
 lifeSupportRating :: Report -> Int
 lifeSupportRating report = oxygenGeneratorRating report * co2ScrubberRating report
