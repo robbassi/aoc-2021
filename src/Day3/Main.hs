@@ -39,13 +39,12 @@ bitsToDecimal str = fromIntegral $ foldl convertStr 0 str
 
 calculateRating :: [String] -> Counts -> Rating -> Int
 calculateRating strs' counts rating =
-  bitsToDecimal $ head $ fst $ foldl f (strs', counts) [0..wordSize counts]
+  bitsToDecimal $ head $ fst $ foldl calculate (strs', counts) [0..wordSize counts]
   where
-    f strs@([answer], ones) index = ([answer], ones)
-    f (strs, Counts {total,ones}) index =
-      let ans = filter checkBit strs
-      in (ans, countOnes ans)
+    calculate acc@([answer], _) index = acc
+    calculate (strs, Counts {total,ones}) index = (filtered, countOnes filtered)
       where
+        filtered = filter checkBit strs
         checkBit str = str !! index == selectBit (ones !! index)
         selectBit n = case rating of
           OxygenGenerator -> if n >= (total - n) then '1' else '0'
