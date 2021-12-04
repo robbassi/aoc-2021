@@ -36,6 +36,8 @@ executable aoc-day3
   main-is:             Day3/Main.hs
   default-language:    Haskell2010
   build-depends:       base >= 4.7 && < 5
+  other-modules:
+    Day3
   extensions:
     BinaryLiterals
     RecordWildCards
