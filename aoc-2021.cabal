@@ -39,6 +39,5 @@ executable aoc-day3
   other-modules:
     Day3
   extensions:
-    BinaryLiterals
     RecordWildCards
     NamedFieldPuns
