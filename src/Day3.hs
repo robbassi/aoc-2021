@@ -1,6 +1,6 @@
 module Day3 where
 
-import Data.Bits (Bits (complement, shift, testBit, (.&.), (.|.)))
+import Data.Bits (Bits (bit, complement, shift, testBit, (.&.), (.|.)))
 
 data DiagnosticReport = DiagnosticReport
   { input :: [Int],
@@ -17,7 +17,7 @@ buildDiagnosticReport :: Int -> [Int] -> DiagnosticReport
 buildDiagnosticReport wordSize input = foldl add defaultDiagnosticReport input
   where
     countOnes num i n
-      | shift 1 (wordSize - i - 1) .&. num /= 0 = succ n
+      | bit (wordSize - i - 1) .&. num /= 0 = succ n
       | otherwise = n
     add DiagnosticReport {..} num =
       DiagnosticReport
@@ -55,13 +55,11 @@ computeRating diagnosticReport@DiagnosticReport {..} rating = answer
       where
         filtered = filter checkBit input
         offset = wordSize - index - 1
-        checkBit num
-          | selectBit (ones !! index) == 1 = testBit num offset
-          | otherwise = not $ testBit num offset
+        checkBit num = selectBit (ones !! index) == testBit num offset
         selectBit n = case rating of
-          OxygenGenerator | n >= (total - n) -> 1
-          CO2Scrubber | n < (total - n) -> 1
-          _ -> 0
+          OxygenGenerator | n >= (total - n) -> True
+          CO2Scrubber | n < (total - n) -> True
+          _ -> False
 
 bitsToDecimal :: String -> Int
 bitsToDecimal = foldl convertChr 0
