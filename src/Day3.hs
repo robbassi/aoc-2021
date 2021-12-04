@@ -1,9 +1,10 @@
 module Day3 where
 
-import Data.Bits (Bits (complement, shift, (.&.), (.|.)))
+import Data.Bits (Bits (complement, shift, testBit, (.&.), (.|.)))
 
 data DiagnosticReport = DiagnosticReport
-  { total :: Int,
+  { input :: [Int],
+    total :: Int,
     wordSize :: Int,
     ones :: [Int]
   }
@@ -12,19 +13,22 @@ data DiagnosticReport = DiagnosticReport
 data Rating = OxygenGenerator | CO2Scrubber
   deriving (Show, Eq)
 
-defaultDiagnosticReport :: Int -> DiagnosticReport
-defaultDiagnosticReport wordSize = DiagnosticReport 0 wordSize $ replicate wordSize 0
-
-buildDiagnosticReport :: [String] -> DiagnosticReport
-buildDiagnosticReport strs = foldl add (defaultDiagnosticReport wordSize) strs
+buildDiagnosticReport :: Int -> [Int] -> DiagnosticReport
+buildDiagnosticReport wordSize input = foldl add defaultDiagnosticReport input
   where
-    wordSize = length $ head strs
-    countOne '1' n = succ n
-    countOne _ n = n
-    add DiagnosticReport {..} str =
+    countOnes num i n
+      | shift 1 (wordSize - i - 1) .&. num /= 0 = succ n
+      | otherwise = n
+    add DiagnosticReport {..} num =
       DiagnosticReport
         { total = succ total,
-          ones = zipWith countOne str ones,
+          ones = zipWith (countOnes num) [0 ..] ones,
+          ..
+        }
+    defaultDiagnosticReport =
+      DiagnosticReport
+        { total = 0,
+          ones = replicate wordSize 0,
           ..
         }
 
@@ -42,20 +46,25 @@ computeEpsilon DiagnosticReport {wordSize} gamma = complement gamma .&. mask wor
     mask 0 a = a
     mask n a = mask (pred n) (shift a 1 + 1)
 
-computeRating :: [String] -> DiagnosticReport -> Rating -> Int
-computeRating strs diagnosticReport rating =
-  bitsToDecimal $ head $ fst $ foldl compute (strs, diagnosticReport) [0 .. wordSize diagnosticReport]
+computeRating :: DiagnosticReport -> Rating -> Int
+computeRating diagnosticReport@DiagnosticReport {..} rating = answer
   where
-    compute answer@([_], _) _ = answer
-    compute (strs, DiagnosticReport {total, ones}) index = (filtered, buildDiagnosticReport filtered)
+    DiagnosticReport {input = [answer]} = foldl compute diagnosticReport [0 .. wordSize]
+    compute answer@DiagnosticReport {input = [_]} _ = answer
+    compute DiagnosticReport {..} index = buildDiagnosticReport wordSize filtered
       where
-        filtered = filter checkBit strs
-        checkBit str = str !! index == selectBit (ones !! index)
+        filtered = filter checkBit input
+        offset = wordSize - index - 1
+        checkBit num
+          | selectBit (ones !! index) == 1 = testBit num offset
+          | otherwise = not $ testBit num offset
         selectBit n = case rating of
-          OxygenGenerator | n >= (total - n) -> '1'
-          CO2Scrubber | n < (total - n) -> '1'
-          _ -> '0'
-    bitsToDecimal = foldl convertChr 0
-      where
-        convertChr n '1' = shift n 1 + 1
-        convertChr n '0' = shift n 1
+          OxygenGenerator | n >= (total - n) -> 1
+          CO2Scrubber | n < (total - n) -> 1
+          _ -> 0
+
+bitsToDecimal :: String -> Int
+bitsToDecimal = foldl convertChr 0
+  where
+    convertChr n '1' = shift n 1 + 1
+    convertChr n '0' = shift n 1
