@@ -1,6 +1,3 @@
-{-# LANGUAGE BinaryLiterals, RecordWildCards #-}
-
-{-# LANGUAGE NamedFieldPuns #-}
 module Main where
 
 import Data.Bits ( Bits((.&.), shift, (.|.), complement) )

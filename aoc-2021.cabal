@@ -38,3 +38,5 @@ executable aoc-day3
   build-depends:       base >= 4.7 && < 5
   extensions:
     BinaryLiterals
+    RecordWildCards
+    NamedFieldPuns
