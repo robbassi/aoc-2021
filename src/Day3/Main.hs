@@ -1,54 +1,58 @@
 module Main where
 
 import Data.Bits ( Bits((.&.), shift, (.|.), complement) )
-import Data.Word ( Word64 )
-import Debug.Trace
 
-data Counts = Counts
+data DiagnosticReport = DiagnosticReport
   { total :: Int
   , wordSize :: Int
   , ones :: [Int]
   }
   deriving Show
 
-countOnes :: [String] -> Counts
-countOnes [] = Counts 0 0 mempty
-countOnes strs = foldl count (Counts 0 wordSize $ replicate wordSize 0) strs
+data Rating = OxygenGenerator | CO2Scrubber
+  deriving (Show, Eq)
+
+countOnes :: [String] -> DiagnosticReport
+countOnes [] = DiagnosticReport 0 0 mempty
+countOnes strs = foldl count (DiagnosticReport 0 wordSize $ replicate wordSize 0) strs
   where
     wordSize = length $ head strs
-    count Counts {..} str = Counts {total = succ total, ones = ones', ..}
-      where ones' = zipWith count' str ones
-            count' '1' n = succ n
-            count' _ n = n
+    count DiagnosticReport {..} str =
+      DiagnosticReport  
+        { total = succ total
+        , ones = zipWith countOne str ones
+        , ..
+        }
+      where
+        countOne '1' n = succ n
+        countOne _ n = n
 
-computeGamma :: Counts -> Int
-computeGamma Counts {total,ones=(x:xs)} = foldl merge (selectBit x) xs
+computeGamma :: DiagnosticReport -> Int
+computeGamma DiagnosticReport {ones=[]} = 0
+computeGamma DiagnosticReport {total,ones=(x:xs)} = foldl merge (selectBit x) xs
   where
     merge a b = shift a 1 .|. selectBit b
     selectBit n = if n > (total - n) then 1 else 0
 
-data Rating = OxygenGenerator | CO2Scrubber
-  deriving (Show, Eq)
-
 bitsToDecimal :: String -> Int
-bitsToDecimal str = fromIntegral $ foldl convertStr 0 str
+bitsToDecimal = foldl convertChr 0
   where
-    convertStr :: Word64 -> Char -> Word64
-    convertStr n '1' = shift n 1 + 1
-    convertStr n '0' = shift n 1
+    convertChr n '1' = shift n 1 + 1
+    convertChr n '0' = shift n 1
 
-calculateRating :: [String] -> Counts -> Rating -> Int
+calculateRating :: [String] -> DiagnosticReport -> Rating -> Int
 calculateRating strs' counts rating =
   bitsToDecimal $ head $ fst $ foldl calculate (strs', counts) [0..wordSize counts]
   where
-    calculate acc@([answer], _) index = acc
-    calculate (strs, Counts {total,ones}) index = (filtered, countOnes filtered)
+    calculate acc@([answer], _) _ = acc
+    calculate (strs, DiagnosticReport {total,ones}) index = (filtered, countOnes filtered)
       where
         filtered = filter checkBit strs
         checkBit str = str !! index == selectBit (ones !! index)
         selectBit n = case rating of
-          OxygenGenerator -> if n >= (total - n) then '1' else '0'
-          CO2Scrubber -> if n < (total - n) then '1' else '0'
+          OxygenGenerator | n >= (total - n) -> '1'
+          CO2Scrubber | n < (total - n) -> '1'
+          _ -> '0'
 
 mask :: Int -> Int
 mask n = go n 0
@@ -59,7 +63,7 @@ mask n = go n 0
 main :: IO ()
 main = do
   input <- lines <$> getContents
-  let counts@Counts {wordSize} = countOnes input
+  let counts@DiagnosticReport {wordSize} = countOnes input
       gamma = computeGamma counts
       epsilon = complement gamma .&. mask wordSize
   print $ "part 1: " ++ show (gamma * epsilon)
