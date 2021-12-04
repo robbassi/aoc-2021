@@ -2,8 +2,8 @@
 
 module Main where
 
-import Data.Maybe (fromJust)
-import Data.List (find)
+import Data.Maybe (fromJust, maybeToList)
+import Data.List (find, head)
 import Data.Map (Map)
 import qualified Data.Map as M
 import Data.List.Split (splitOn)
@@ -15,7 +15,7 @@ data Board = Board
   { marked :: Map Pos Bool,
     numMap :: Map Int Pos
   }
-  deriving Show
+  deriving (Show, Eq)
 
 emptyBoard :: Board
 emptyBoard = Board
@@ -49,11 +49,13 @@ checkCol n Board {..} = foldl checkCol' True [0..4]
     checkCol' cond row = M.findWithDefault False (row, n) marked && cond
 
 computeWinner :: DrawnNumbers -> [Board] -> (Board, Int)
-computeWinner drawnNumbers boards = fromJust $ snd $ foldl processNumber (boards, Nothing) drawnNumbers
+computeWinner drawnNumbers boards = head $ snd $ foldl processNumber (boards, []) drawnNumbers
   where
-    processNumber answer@(_, Just _) _ = answer
-    processNumber (boards, Nothing) number = (boards', (,number) <$> find winner boards')
+    processNumber (boards, winners) number =
+      (filter (not . flip elem winningBoards) boards', newWinners ++ winners)
       where
+        winningBoards = fst <$> newWinners
+        newWinners = (,number) <$> filter winner boards'
         boards' = updateBoard <$> boards
         updateBoard Board {..} = Board {marked = marked', ..}
           where
