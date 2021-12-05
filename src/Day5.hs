@@ -42,9 +42,10 @@ parseLines = fmap parseLine
       let [x, y] = read <$> splitOn "," str
        in (x, y)
 
-countPointsWithMultipleOverlaps :: [Line] -> Int
-countPointsWithMultipleOverlaps lines = length $ filter ((> 1) . snd) $ M.toList overlaps
+countOverlappingPoints :: [Line] -> Int
+countOverlappingPoints lines = length overlappingPoints
   where
     allPoints = points =<< lines
     countOverlaps m p = M.insertWith (+) p 1 m
     overlaps = foldl countOverlaps M.empty allPoints
+    overlappingPoints = filter ((> 1) . snd) $ M.toList overlaps

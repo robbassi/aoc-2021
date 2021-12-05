@@ -1,6 +1,6 @@
 module Main where
 
-import Day5 (countPointsWithMultipleOverlaps, parseLines, straight)
+import Day5 (countOverlappingPoints, parseLines, straight)
 
 {-
 1) parse input
@@ -13,7 +13,7 @@ main = do
   input <- lines <$> getContents
   let allLines = parseLines input
       straightLines = filter straight $ parseLines input
-      part1 = countPointsWithMultipleOverlaps straightLines
-      part2 = countPointsWithMultipleOverlaps allLines
+      part1 = countOverlappingPoints straightLines
+      part2 = countOverlappingPoints allLines
   print $ "part 1 = " ++ show part1
   print $ "part 2 = " ++ show part2
