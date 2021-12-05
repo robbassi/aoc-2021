@@ -30,10 +30,10 @@ parseBoards :: [String] -> [Board]
 parseBoards [] = []
 parseBoards (_:row1:row2:row3:row4:row5:rest) = board : parseBoards rest
   where
-    numMap' = foldl f M.empty $ zip [0..] [row1, row2, row3, row4, row5]
-    f numMap (rowNum, numbers) = foldl g numMap $ zip [0..] $ words numbers
+    numMap' = foldl parseRows M.empty $ zip [0..] [row1, row2, row3, row4, row5]
+    parseRows numMap (rowNum, numbers) = foldl parseCols numMap $ zip [0..] $ words numbers
       where
-        g numMap (colNum, number) = 
+        parseCols numMap (colNum, number) = 
           let n = read number
           in M.insert n (rowNum, colNum) numMap
     board = emptyBoard { numMap = numMap' }
