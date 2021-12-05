@@ -3,7 +3,7 @@
 module Main where
 
 import Data.Maybe (fromJust, maybeToList)
-import Data.List (find, head, partition)
+import Data.List (find, head, last, partition)
 import Data.Map (Map)
 import qualified Data.Map as M
 import Data.List.Split (splitOn)
@@ -48,10 +48,10 @@ checkCol n Board {..} = foldl checkCol' True [0..4]
   where
     checkCol' cond row = M.findWithDefault False (row, n) marked && cond
 
-computeWinner :: DrawnNumbers -> [Board] -> (Board, Int)
-computeWinner drawnNumbers boards = head $ snd $ foldl processNumber (boards, []) drawnNumbers
+computeWinners :: DrawnNumbers -> [Board] -> [(Board, Int)]
+computeWinners drawnNumbers boards = snd $ foldl processNumber (boards, []) drawnNumbers
   where
-    processNumber (boards, prevWinners) number = (stillPlaying, newWinners' ++ prevWinners)
+    processNumber (boards, prevWinners) number = (stillPlaying, prevWinners ++ newWinners')
       where
         newWinners' = (,number) <$> newWinners
         (newWinners, stillPlaying) = partition isWinner boards'
@@ -78,6 +78,8 @@ main = do
   (drawnNumberStr : boardStrs) <- lines <$> getContents
   let drawnNumbers = parseDrawnNumbers drawnNumberStr
       boards = parseBoards boardStrs
-      winner = computeWinner drawnNumbers boards
-      score = computeScore winner
-  print $ "score = " ++ show score
+      winners = computeWinners drawnNumbers boards
+      part1 = computeScore $ head winners
+      part2 = computeScore $ last winners
+  print $ "part 1 = " ++ show part1
+  print $ "part 2 = " ++ show part2
