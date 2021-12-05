@@ -3,7 +3,7 @@
 module Main where
 
 import Data.Maybe (fromJust, maybeToList)
-import Data.List (find, head)
+import Data.List (find, head, partition)
 import Data.Map (Map)
 import qualified Data.Map as M
 import Data.List.Split (splitOn)
@@ -51,12 +51,10 @@ checkCol n Board {..} = foldl checkCol' True [0..4]
 computeWinner :: DrawnNumbers -> [Board] -> (Board, Int)
 computeWinner drawnNumbers boards = head $ snd $ foldl processNumber (boards, []) drawnNumbers
   where
-    processNumber (boards, winners) number =
-      (filter notWinner boards', winners' ++ winners)
+    processNumber (boards, prevWinners) number = (stillPlaying, newWinners' ++ prevWinners)
       where
-        notWinner = not . flip elem winningBoards
-        winningBoards = fst <$> winners'
-        winners' = (,number) <$> filter isWinner boards'
+        newWinners' = (,number) <$> newWinners
+        (newWinners, stillPlaying) = partition isWinner boards'
         boards' = updateBoard <$> boards
         updateBoard Board {..} = Board {marked = marked', ..}
           where
