@@ -52,17 +52,18 @@ computeWinner :: DrawnNumbers -> [Board] -> (Board, Int)
 computeWinner drawnNumbers boards = head $ snd $ foldl processNumber (boards, []) drawnNumbers
   where
     processNumber (boards, winners) number =
-      (filter (not . flip elem winningBoards) boards', newWinners ++ winners)
+      (filter notWinner boards', winners' ++ winners)
       where
-        winningBoards = fst <$> newWinners
-        newWinners = (,number) <$> filter winner boards'
+        notWinner = not . flip elem winningBoards
+        winningBoards = fst <$> winners'
+        winners' = (,number) <$> filter isWinner boards'
         boards' = updateBoard <$> boards
         updateBoard Board {..} = Board {marked = marked', ..}
           where
             marked' = case M.lookup number numMap of
               Just (row, col) -> M.insert (row, col) True marked
               Nothing -> marked
-        winner board = case M.lookup number $ numMap board of
+        isWinner board = case M.lookup number $ numMap board of
           Just (row, col) -> checkRow row board || checkCol col board
           Nothing -> False
 
@@ -81,7 +82,4 @@ main = do
       boards = parseBoards boardStrs
       winner = computeWinner drawnNumbers boards
       score = computeScore winner
-  -- print $ "drawnNumbers = " ++ show drawnNumbers
-  -- print $ "boards = " ++ show boards
-  -- print $ "winner = " ++ show winner
   print $ "score = " ++ show score
