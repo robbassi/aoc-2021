@@ -1,11 +1,10 @@
 module Main where
 
 import Data.Bool (bool)
-import Data.List (find, head, last, partition)
+import Data.List (head, last, partition)
 import Data.List.Split (splitOn)
 import Data.Map (Map)
 import qualified Data.Map as M
-import Data.Maybe (fromJust, maybeToList)
 
 maxIndex :: Int
 maxIndex = 4
