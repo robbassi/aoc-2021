@@ -1,5 +1,6 @@
 module Day5 where
 
+import Data.Bifunctor (bimap)
 import Data.List.Split (splitOn)
 import Data.Map (Map)
 import qualified Data.Map as M
@@ -13,15 +14,14 @@ straight :: Line -> Bool
 straight (Line (x1, y1) (x2, y2)) = x1 == x2 || y1 == y2
 
 points :: Line -> [Point]
-points line@(Line p1@(x1, y1) p2@(x2, y2)) = pointsBetween p1 p2 [p1]
+points line@(Line p1@(x1, y1) end@(x2, y2)) = interpolate [p1]
   where
     (rise, run) = (delta y1 y2, delta x1 x2)
-    pointsBetween p1 p2 points
-      | p1 == p2 = points
+    interpolate rest@(p : ps)
+      | p == end = rest
       | otherwise =
-        let (x, y) = p1
-            p1' = (x + run, y + rise)
-         in pointsBetween p1' p2 $ p1' : points
+        let p' = bimap (+ run) (+ rise) p
+         in interpolate $ p' : rest
     delta a b =
       case compare a b of
         LT -> 1
