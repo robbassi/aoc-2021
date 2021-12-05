@@ -1,14 +1,16 @@
-{-# LANGUAGE NamedFieldPuns, TupleSections #-}
-
 module Main where
 
-import Data.Maybe (fromJust, maybeToList)
 import Data.List (find, head, last, partition)
+import Data.List.Split (splitOn)
 import Data.Map (Map)
 import qualified Data.Map as M
-import Data.List.Split (splitOn)
+import Data.Maybe (fromJust, maybeToList)
+
+maxIndex :: Int
+maxIndex = 4
 
 type DrawnNumbers = [Int]
+
 type Pos = (Int, Int)
 
 data Board = Board
@@ -18,33 +20,34 @@ data Board = Board
   deriving (Show, Eq)
 
 emptyBoard :: Board
-emptyBoard = Board
-  { marked = M.empty,
-    numMap = M.empty
-   }
+emptyBoard =
+  Board
+    { marked = M.empty,
+      numMap = M.empty
+    }
 
 parseDrawnNumbers :: String -> DrawnNumbers
 parseDrawnNumbers = fmap read . splitOn ","
 
 parseBoards :: [String] -> [Board]
 parseBoards [] = []
-parseBoards (_:row1:row2:row3:row4:row5:rest) = board : parseBoards rest
+parseBoards (_ : row1 : row2 : row3 : row4 : row5 : rest) = board : parseBoards rest
   where
-    numMap' = foldl parseRows M.empty $ zip [0..] [row1, row2, row3, row4, row5]
-    parseRows numMap (rowNum, numbers) = foldl parseCols numMap $ zip [0..] $ words numbers
+    numMap' = foldl parseRows M.empty $ zip [0 ..] [row1, row2, row3, row4, row5]
+    parseRows numMap (rowNum, numbers) = foldl parseCols numMap $ zip [0 ..] $ words numbers
       where
-        parseCols numMap (colNum, number) = 
+        parseCols numMap (colNum, number) =
           let n = read number
-          in M.insert n (rowNum, colNum) numMap
-    board = emptyBoard { numMap = numMap' }
+           in M.insert n (rowNum, colNum) numMap
+    board = emptyBoard {numMap = numMap'}
 
 checkRow :: Int -> Board -> Bool
-checkRow n Board {..} = foldl checkRow' True [0..4]
+checkRow n Board {..} = foldl checkRow' True [0 .. maxIndex]
   where
     checkRow' cond col = M.findWithDefault False (n, col) marked && cond
 
 checkCol :: Int -> Board -> Bool
-checkCol n Board {..} = foldl checkCol' True [0..4]
+checkCol n Board {..} = foldl checkCol' True [0 .. maxIndex]
   where
     checkCol' cond row = M.findWithDefault False (row, n) marked && cond
 
@@ -69,9 +72,10 @@ computeScore :: (Board, Int) -> Int
 computeScore (Board {..}, winningNumber) = unmarkedSum * winningNumber
   where
     unmarkedSum = sum (entryToNum <$> M.toList numMap)
-    entryToNum (number, pos) = if M.findWithDefault False pos marked
-      then 0
-      else number
+    entryToNum (number, pos) =
+      if M.findWithDefault False pos marked
+        then 0
+        else number
 
 main :: IO ()
 main = do
