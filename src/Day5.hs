@@ -6,10 +6,6 @@ import qualified Data.Map as M
 
 type Point = (Int, Int)
 
-type Slope = (Int, Int)
-
-type Overlaps = Map Point Int
-
 data Line = Line Point Point
   deriving (Show)
 
