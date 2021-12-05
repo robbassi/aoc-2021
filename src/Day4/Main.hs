@@ -1,5 +1,6 @@
 module Main where
 
+import Data.Bool (bool)
 import Data.List (find, head, last, partition)
 import Data.List.Split (splitOn)
 import Data.Map (Map)
@@ -33,13 +34,13 @@ parseBoards :: [String] -> [Board]
 parseBoards [] = []
 parseBoards (_ : row1 : row2 : row3 : row4 : row5 : rest) = board : parseBoards rest
   where
-    numMap' = foldl parseRows M.empty $ zip [0 ..] [row1, row2, row3, row4, row5]
-    parseRows numMap (rowNum, numbers) = foldl parseCols numMap $ zip [0 ..] $ words numbers
-      where
-        parseCols numMap (colNum, number) =
-          let n = read number
-           in M.insert n (rowNum, colNum) numMap
     board = emptyBoard {numMap = numMap'}
+    numMap' = foldl parseRows M.empty $ zip [0 ..] [row1, row2, row3, row4, row5]
+    parseRows numMap (rowNum, numberStrs) = foldl parseCols numMap $ zip [0 ..] $ words numberStrs
+      where
+        parseCols numMap (colNum, numberStr) =
+          let number = read numberStr
+           in M.insert number (rowNum, colNum) numMap
 
 checkRow :: Int -> Board -> Bool
 checkRow n Board {..} = foldl checkRow' True [0 .. maxIndex]
@@ -56,26 +57,23 @@ computeWinners drawnNumbers boards = snd $ foldl processNumber (boards, []) draw
   where
     processNumber (boards, prevWinners) number = (stillPlaying, prevWinners ++ newWinners')
       where
+        boards' = updateBoard <$> boards
         newWinners' = (,number) <$> newWinners
         (newWinners, stillPlaying) = partition isWinner boards'
-        boards' = updateBoard <$> boards
         updateBoard Board {..} = Board {marked = marked', ..}
           where
             marked' = case M.lookup number numMap of
               Just (row, col) -> M.insert (row, col) True marked
               Nothing -> marked
-        isWinner board = case M.lookup number $ numMap board of
+        isWinner board@Board {numMap} = case M.lookup number numMap of
           Just (row, col) -> checkRow row board || checkCol col board
           Nothing -> False
 
 computeScore :: (Board, Int) -> Int
-computeScore (Board {..}, winningNumber) = unmarkedSum * winningNumber
+computeScore (Board {..}, winningNumber) = sum unmarkedNumbers * winningNumber
   where
-    unmarkedSum = sum (entryToNum <$> M.toList numMap)
-    entryToNum (number, pos) =
-      if M.findWithDefault False pos marked
-        then 0
-        else number
+    unmarkedNumbers = lookupNumber <$> M.toList numMap
+    lookupNumber (number, pos) = bool number 0 $ M.findWithDefault False pos marked
 
 main :: IO ()
 main = do

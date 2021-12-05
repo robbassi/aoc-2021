@@ -51,3 +51,5 @@ executable aoc-day4
                      , split
   extensions:
     RecordWildCards
+    NamedFieldPuns
+    TupleSections 
