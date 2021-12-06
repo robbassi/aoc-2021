@@ -1,7 +1,10 @@
 module Day3 where
 
+
 import qualified Data.Matrix as M
 import qualified Data.Vector as V
+
+import Common ( columns, rows )
 
 type Report = M.Matrix Int
 
@@ -16,12 +19,6 @@ parseLine = map (read . (: ""))
 
 parseReport :: [String] -> Report
 parseReport = M.fromLists . map parseLine
-
-columns :: Report -> [ReportCol]
-columns report = [M.getCol i report | i <- [1 .. M.ncols report]]
-
-rows :: Report -> [ReportRow]
-rows report = [M.getRow i report | i <- [1 .. M.nrows report]]
 
 mostCommonBit :: ReportCol -> Int
 mostCommonBit col = if length col - sum col <= sum col then 1 else 0

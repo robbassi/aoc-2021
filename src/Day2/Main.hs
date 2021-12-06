@@ -10,4 +10,4 @@ main = do
   input <- readInput "src/Day2/input.txt"
   let Position {..} = calculatePosition start $ parseCommands (lines input)
   let result = distance * depth
-  if result == 1963088820 then print result else print "FAIL"
+  if result == 1963088820 then print "PASS" else print "FAIL"

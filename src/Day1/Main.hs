@@ -8,4 +8,4 @@ main = do
   let windowSize = 3
   contents <- readInput "src/Day1/input.txt"
   let result = numIncreases $ smooth windowSize (parse contents)
-  if result == 1127 then print result else print "FAIL"
+  print $ if result == 1127 then "PASS" else "FAIL"

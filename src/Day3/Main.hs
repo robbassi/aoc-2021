@@ -13,4 +13,4 @@ main = do
   -- print $ if firstPart == 198 then "First Part Passed" else "First Part Failed"
   let secondPart = lifeSupportRating report
   -- if secondPart == 230 then print secondPart else print "Second Part Failed"
-  if secondPart == 2990784 then print secondPart else print "Second Part Failed"
+  print $ if secondPart == 2990784 then "Second Part Passed" else print "Second Part Failed"
