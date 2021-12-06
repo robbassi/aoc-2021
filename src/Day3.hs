@@ -1,10 +1,8 @@
 module Day3 where
 
-
+import Common (columns, rows)
 import qualified Data.Matrix as M
 import qualified Data.Vector as V
-
-import Common ( columns, rows )
 
 type Report = M.Matrix Int
 
@@ -14,11 +12,10 @@ type ReportCol = V.Vector Int
 
 type BinList = [Int]
 
-parseLine :: String -> BinList
-parseLine = map (read . (: ""))
-
 parseReport :: [String] -> Report
 parseReport = M.fromLists . map parseLine
+  where
+    parseLine = map (read . (: ""))
 
 mostCommonBit :: ReportCol -> Int
 mostCommonBit col = if length col - sum col <= sum col then 1 else 0
@@ -34,14 +31,11 @@ toDecimal list = snd $ foldl func (0, 0) (reverse list)
         then (index + 1, acc + 2 ^ index)
         else (index + 1, acc)
 
-computeGamma :: Report -> Int
-computeGamma = toDecimal . map mostCommonBit . columns
-
-computeEpsilon :: Report -> Int
-computeEpsilon = toDecimal . map leastCommonBit . columns
-
 computePowerConsumption :: Report -> Int
 computePowerConsumption report = computeGamma report * computeEpsilon report
+  where
+    computeGamma = toDecimal . map mostCommonBit . columns
+    computeEpsilon = toDecimal . map leastCommonBit . columns
 
 -- Prunes rows whose indexed value matches the int
 prune :: Int -> Int -> Report -> Report
@@ -58,11 +52,8 @@ computeRating bitToPrune report = inner 1 report
         then toDecimal $ M.toList report
         else inner (index + 1) (prune index (bitToPrune (M.getCol index report)) report)
 
-oxygenGeneratorRating :: Report -> Int
-oxygenGeneratorRating = computeRating leastCommonBit
-
-co2ScrubberRating :: Report -> Int
-co2ScrubberRating = computeRating mostCommonBit
-
 lifeSupportRating :: Report -> Int
 lifeSupportRating report = oxygenGeneratorRating report * co2ScrubberRating report
+  where
+    oxygenGeneratorRating = computeRating leastCommonBit
+    co2ScrubberRating = computeRating mostCommonBit
