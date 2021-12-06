@@ -19,28 +19,24 @@ parseNumbers = fmap read . splitOn ","
 
 parseBoards :: [String] -> [Board]
 parseBoards = map parseBoard . splitOn [""]
-
-parseBoard :: [String] -> Board
-parseBoard = fromLists <$> map (map buildTuple . words)
   where
+    parseBoard = fromLists <$> map (map buildTuple . words)
     buildTuple = \x -> (read x, False)
 
 playRound :: Int -> [Board] -> [Board]
 playRound num = map (mapPos (\(_, _) (x, picked) -> (x, picked || x == num)))
 
-isWinner :: Board -> Bool
-isWinner board = any ((== True) . checkRowOrCol) $ rows board ++ columns board
-  where
-    checkRowOrCol = V.all (== True) . V.map snd
-
-findWinners :: Int -> [Board] -> [(Board, Score)]
-findWinners num = map (\w -> (w, calculateScore num w)) . filter isWinner
-
 winnersAndLosers :: [Board] -> ([Board],[Board])
 winnersAndLosers = partition isWinner
+  where
+    isWinner board = any ((== True) . checkRowOrCol) $ rows board ++ columns board
+    checkRowOrCol = V.all (== True) . V.map snd
 
-pruneWinners :: [Board] -> [Board]
-pruneWinners = filter (not . isWinner)
+
+calculateScore :: Int -> Board -> Int
+calculateScore num board = num * foldl func 0 board
+  where
+    func score (x, marked) = if marked then score else score + x
 
 playBingo :: DrawnNumbers -> [Board] -> [(Board, Score)]
 playBingo numbers boards = playBingo' [] numbers boards
@@ -50,8 +46,3 @@ playBingo numbers boards = playBingo' [] numbers boards
     playBingo' winners (n : ns) boards =
       let (newWinners, rest) = winnersAndLosers $ playRound n boards
        in playBingo' (winners ++ map (\w -> (w, calculateScore n w)) newWinners) ns rest
-
-calculateScore :: Int -> Board -> Int
-calculateScore num board = num * foldl func 0 board
-  where
-    func score (x, marked) = if marked then score else score + x
