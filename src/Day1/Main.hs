@@ -6,4 +6,5 @@ main :: IO ()
 main = do
   let parse = fmap read . lines
   input <- parse <$> getContents
-  print $ numIncreases $ interpolate input
+  print $ mappend "part 1 = " $ show $ numIncreases input
+  print $ mappend "part 2 = " $ show $ numIncreases $ interpolate input

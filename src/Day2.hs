@@ -28,6 +28,13 @@ parseCommands = map parseCommand . fmap words
 eval :: Position -> Course -> Position
 eval = foldl eval'
   where
+    eval' Position {..} (Forward n) = Position (horizontal + n) depth aim
+    eval' Position {..} (Down n) = Position horizontal (depth + n) aim
+    eval' Position {..} (Up n) = Position horizontal (depth - n) aim
+
+eval' :: Position -> Course -> Position
+eval' = foldl eval'
+  where
     eval' Position {..} (Forward n) = Position (horizontal + n) (depth + aim * n) aim
     eval' Position {..} (Down n) = Position horizontal depth (aim + n)
     eval' Position {..} (Up n) = Position horizontal depth (aim - n)
