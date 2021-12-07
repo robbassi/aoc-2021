@@ -72,3 +72,5 @@ executable aoc-day6
   default-language:    Haskell2010
   build-depends:       base >= 4.7 && < 5
                      , split
+  extensions:
+    RecordWildCards
