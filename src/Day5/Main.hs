@@ -6,7 +6,7 @@ import Day4
 main :: IO ()
 main = do
   (numbersString : _ : boardStrings) <- lines <$> readInput "src/Day4/input.txt"
-  let drawnNumbers = parseList numbersString
+  let drawnNumbers = parseNumbers numbersString
   let boards = parseBoards boardStrings
   let winners = playBingo drawnNumbers boards
   let winner = head winners

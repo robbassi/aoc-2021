@@ -16,7 +16,7 @@ extra-source-files:  README.md
 library
   hs-source-dirs:      src
   exposed-modules:     Common
-  build-depends:       base >= 4.7 && < 5, matrix == 0.3.6.1, vector == 0.12.3.1
+  build-depends:       base >= 4.7 && < 5, split == 0.2.3.4, matrix == 0.3.6.1, vector == 0.12.3.1
 
 executable aoc-day1
   hs-source-dirs:      src
@@ -31,10 +31,10 @@ executable aoc-day2
   hs-source-dirs:      src
   main-is:             Day2/Main.hs
   default-language:    Haskell2010
-  build-depends:       base >= 4.7 && < 5, matrix == 0.3.6.1, vector == 0.12.3.1
+  build-depends:       base >= 4.7 && < 5
   other-modules:
     Common
-    Day2
+    Day2     
   default-extensions:
     RecordWildCards
 
@@ -42,7 +42,7 @@ executable aoc-day3
   hs-source-dirs:      src
   main-is:             Day3/Main.hs
   default-language:    Haskell2010
-  build-depends:       base >= 4.7 && < 5, matrix == 0.3.6.1, vector == 0.12.3.1
+  build-depends:       base >= 4.7 && < 5
   other-modules:
     Common
     Day3
@@ -55,3 +55,20 @@ executable aoc-day4
   other-modules:
     Common
     Day4
+
+executable aoc-day5
+  hs-source-dirs:      src
+  main-is:             Day5/Main.hs
+  default-language:    Haskell2010
+  build-depends:       base >= 4.7 && < 5, split == 0.2.3.4, matrix == 0.3.6.1, vector == 0.12.3.1
+  other-modules:
+    Common
+    Day5
+
+executable aoc-day6
+  hs-source-dirs:      src
+  main-is:             Day6/Main.hs
+  default-language:    Haskell2010
+  build-depends:       base >= 4.7 && < 5, split == 0.2.3.4, matrix == 0.3.6.1, vector == 0.12.3.1, containers
+  other-modules:
+    Common

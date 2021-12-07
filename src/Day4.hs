@@ -14,8 +14,6 @@ type Score = Int
 
 data Strategy = Win | Lose
 
-parseNumbers :: String -> DrawnNumbers
-parseNumbers = fmap read . splitOn ","
 
 parseBoards :: [String] -> [Board]
 parseBoards = map parseBoard . splitOn [""]
@@ -31,7 +29,6 @@ winnersAndLosers = partition isWinner
   where
     isWinner board = any ((== True) . checkRowOrCol) $ rows board ++ columns board
     checkRowOrCol = V.all (== True) . V.map snd
-
 
 calculateScore :: Int -> Board -> Int
 calculateScore num board = num * foldl func 0 board
