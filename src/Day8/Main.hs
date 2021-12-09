@@ -1,5 +1,3 @@
-{-# LANGUAGE RecordWildCards #-}
-
 module Main where
 
 import Data.Bits
@@ -107,7 +105,8 @@ findKnownDigits patterns =
 
 analyzeWiring :: [Segments] -> WiringTable
 analyzeWiring patterns =
-  let -- the only difference between 1 and 7 is a
+  let KnownDigits {..} = findKnownDigits patterns
+      -- the only difference between 1 and 7 is a
       wireA = seven `xor` one
       -- if we remove 1 from 4, and then remove d from that, we get b
       wireB = wireD `xor` (four `xor` one)
@@ -121,8 +120,6 @@ analyzeWiring patterns =
       -- we're left with g and e, then we remove e to get g
       wireG = wireE `xor` (eight `xor` (four .|. seven))
    in WiringTable {..}
-  where
-    KnownDigits {..} = findKnownDigits patterns
 
 decodeNote :: Note -> Int
 decodeNote Note {..} = foldl decode 0 digits
