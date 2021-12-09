@@ -24,10 +24,13 @@ data Note = Note
 type Notes = [Note]
 
 data KnownSegments = KnownSegments
-  { one :: Segments,
+  { zero :: Segments,
+    one :: Segments,
     four :: Segments,
+    six :: Segments,
     seven :: Segments,
     eight :: Segments,
+    nine :: Segments,
     sixSegmentDigits :: [Segments]
   }
   deriving (Show)
@@ -93,16 +96,19 @@ lookup' k = fromJust . M.lookup k
 
 findKnownSegments :: [Segments] -> KnownSegments
 findKnownSegments patterns =
-  KnownSegments
-    { one = lookup' 2 patternsByLength,
-      four = lookup' 4 patternsByLength,
-      seven = lookup' 3 patternsByLength,
-      eight = lookup' 7 patternsByLength,
-      sixSegmentDigits = filter ((== 6) . numSegments) patterns
-    }
+  let one = lookup' 2 patternsByLength
+      four = lookup' 4 patternsByLength
+      seven = lookup' 3 patternsByLength
+      eight = lookup' 7 patternsByLength
+      -- the only six segment number whose length is 2 off from four is nine
+      ([nine], zeroOrSix) = partition ((== 2) . numSegments . xor four) sixSegmentDigits
+      -- zero is a perfect superset of one, six is not
+      ([zero], [six]) = partition ((== one) . (.&. one)) zeroOrSix
+   in KnownSegments {..}
   where
     patternsByLength = M.fromList $ map indexByLength patterns
     indexByLength p = (numSegments p, p)
+    sixSegmentDigits = filter ((== 6) . numSegments) patterns
 
 decodeTranslationTable :: [Segments] -> TranslationTable
 decodeTranslationTable patterns =
@@ -116,8 +122,6 @@ decodeTranslationTable patterns =
    in TranslationTable {..}
   where
     KnownSegments {..} = findKnownSegments patterns
-    ([nine], zeroOrSix) = partition ((== 2) . numSegments . xor four) sixSegmentDigits
-    ([zero], [six]) = partition ((== one) . (.&. one)) zeroOrSix
 
 decodeNote :: Note -> Int
 decodeNote Note {..} = foldl calculateDigit 0 digits
