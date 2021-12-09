@@ -109,8 +109,8 @@ analyzeWiring :: [Segments] -> WiringTable
 analyzeWiring patterns =
   let -- the only difference between 1 and 7 is a
       wireA = seven `xor` one
-      -- if we remove 1 from 4, and then from d from that, we get b
-      wireB = d `xor` (four `xor` one)
+      -- if we remove 1 from 4, and then remove d from that, we get b
+      wireB = wireD `xor` (four `xor` one)
       -- c, d and e can be found by removing 6, 0 and 9 from 8 respectively
       wireC = eight `xor` six
       wireD = eight `xor` zero
