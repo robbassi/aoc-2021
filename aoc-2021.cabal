@@ -83,3 +83,10 @@ executable aoc-day7
                      , split
   extensions:
     RecordWildCards
+
+executable aoc-day8
+  hs-source-dirs:      src
+  main-is:             Day8/Main.hs
+  default-language:    Haskell2010
+  build-depends:       base >= 4.7 && < 5
+                     , split
