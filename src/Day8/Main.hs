@@ -1,48 +1,47 @@
 {-# LANGUAGE RecordWildCards #-}
+
 module Main where
 
-import Data.Coerce (coerce)
+import Data.Bits
 import Data.List (find, partition)
 import Data.List.Split (splitOn)
-import Data.Maybe (fromJust)
-import Data.Word (Word8)
-import Data.Bits
 import Data.Map (Map)
 import qualified Data.Map as M
+import Data.Maybe (fromJust)
+import Data.Word (Word8)
 import Debug.Trace
 
 type Segment = Word8
+
 type Segments = Word8
 
-newtype Pattern = Pattern Segments
-  deriving Show
-
-newtype Digit = Digit Segments
-  deriving Show
-
 data Note = Note
-  { patterns :: [Pattern]
-  , digits :: [Digit]
+  { patterns :: [Segments],
+    digits :: [Segments]
   }
-  deriving Show
+  deriving (Show)
 
 type Notes = [Note]
 
-data Mapping
-  = Unknown
-  | OneOf Segments
-  | Exactly Segment
+data KnownSegments = KnownSegments
+  { one :: Segments,
+    four :: Segments,
+    seven :: Segments,
+    eight :: Segments,
+    sixSegmentDigits :: [Segments]
+  }
+  deriving (Show)
 
-data KnownSegments =
-  KnownSegments
-    { one :: Segments
-    , four :: Segments
-    , seven :: Segments
-    , eight :: Segments
-    , fiveSegmentDigits :: [Segments]
-    , sixSegmentDigits :: [Segments]
-    }
-  deriving Show
+data TranslationTable = TranslationTable
+  { a :: Segments,
+    b :: Segments,
+    c :: Segments,
+    d :: Segments,
+    e :: Segments,
+    f :: Segments,
+    g :: Segments
+  }
+  deriving (Show)
 
 segmentA, segmentB, segmentC, segmentD, segmentE, segmentF, segmentG :: Segment
 segmentA = bit 0
@@ -55,18 +54,18 @@ segmentG = bit 6
 
 digitSegments :: Map Segments Int
 digitSegments =
-  M.fromList [
-    (mkSegments "abcefg", 0),
-    (mkSegments "cf", 1),
-    (mkSegments "acdeg", 2),
-    (mkSegments "acdfg", 3),
-    (mkSegments "bcdf", 4),
-    (mkSegments "abdfg", 5),
-    (mkSegments "abdefg", 6),
-    (mkSegments "acf", 7),
-    (mkSegments "abcdefg", 8),
-    (mkSegments "abcdfg", 9)
-  ]
+  M.fromList
+    [ (mkSegments "abcefg", 0),
+      (mkSegments "cf", 1),
+      (mkSegments "acdeg", 2),
+      (mkSegments "acdfg", 3),
+      (mkSegments "bcdf", 4),
+      (mkSegments "abdfg", 5),
+      (mkSegments "abdefg", 6),
+      (mkSegments "acf", 7),
+      (mkSegments "abcdefg", 8),
+      (mkSegments "abcdfg", 9)
+    ]
 
 mkSegments :: String -> Segments
 mkSegments = foldl (flip markSegment) 0
@@ -79,91 +78,89 @@ markSegment 'd' = (.|. segmentD)
 markSegment 'e' = (.|. segmentE)
 markSegment 'f' = (.|. segmentF)
 markSegment 'g' = (.|. segmentG)
+
 -- we have an extra bit
 
-showSegments :: Segments -> String
-showSegments segments = foldl countOnes "" [0..6]
-  where
-    countOnes n i
-      | bit i .&. segments > 0 = '1' : n
-      | otherwise = '0' : n
-
 numSegments :: Segments -> Int
-numSegments segments = foldl countOnes 0 [0..6]
+numSegments segments = foldl countOnes 0 [0 .. 6]
   where
     countOnes n i
       | bit i .&. segments > 0 = succ n
       | otherwise = n
 
-findKnownSegments :: [Pattern] -> KnownSegments
+lookup' :: Ord k => k -> Map k a -> a
+lookup' k = fromJust . M.lookup k
+
+findKnownSegments :: [Segments] -> KnownSegments
 findKnownSegments patterns =
   KnownSegments
-    { one = findPatternWithLength 2
-    , four = findPatternWithLength 4
-    , seven = findPatternWithLength 3
-    , eight = findPatternWithLength 7
-    , fiveSegmentDigits = filter ((== 5) . numSegments) $ fmap coerce patterns
-    , sixSegmentDigits = filter ((== 6) . numSegments) $ fmap coerce patterns
+    { one = lookup' 2 patternsByLength,
+      four = lookup' 4 patternsByLength,
+      seven = lookup' 3 patternsByLength,
+      eight = lookup' 7 patternsByLength,
+      sixSegmentDigits = filter ((== 6) . numSegments) patterns
     }
   where
-    findPatternWithLength n = fromJust $ find ((== n) . numSegments) $ fmap coerce patterns
+    patternsByLength = M.fromList $ map indexByLength patterns
+    indexByLength p = (numSegments p, p)
+
+decodeTranslationTable :: [Segments] -> TranslationTable
+decodeTranslationTable patterns =
+  let a = seven `xor` one
+      b = d `xor` bd
+      c = eight `xor` six
+      d = eight `xor` zero
+      e = eight `xor` nine
+      f = eight `xor` (a .|. b .|. c .|. d .|. e .|. g)
+      g = e `xor` eg
+      bd = four `xor` one
+      eg = eight `xor` (four .|. seven)
+   in TranslationTable {..}
+  where
+    KnownSegments {..} = findKnownSegments patterns
+    ([nine], zeroOrSix) = partition ((== 2) . numSegments . xor four) sixSegmentDigits
+    ([zero], [six]) = partition ((== one) . (.&. one)) zeroOrSix
 
 decodeNote :: Note -> Int
 decodeNote Note {..} = foldl calculateDigit 0 digits
   where
     calculateDigit n digit = decodeDigit digit + n * 10
-    decodeDigit (Digit segments) = fromJust $ M.lookup decoded digitSegments
+    decodeDigit segments = lookup' decoded digitSegments
       where
-        decoded = foldl decodeSegment 0 [0..6]
-        decodeSegment decoded i
-          | testBit segments i =
-            let Just realSegment = M.lookup (bit i) decodedMapping
-            in decoded .|. realSegment
-          | otherwise = decoded
-    decodedMapping =
-      M.fromList [
-        (a, segmentA),
-        (b, segmentB),
-        (c, segmentC),
-        (d, segmentD),
-        (e, segmentE),
-        (f, segmentF),
-        (g, segmentG)
-      ]
-    KnownSegments {..} = findKnownSegments patterns
-    ([nine], rest) = partition ((== 2) . numSegments . xor four) sixSegmentDigits
-    ([zero], [six]) = partition ((== one) . (.&. one)) rest
-    a = seven `xor` one
-    b = d `xor` bd
-    c = eight `xor` six
-    d = eight `xor` zero
-    e = eight `xor` nine
-    f = eight `xor` (a .|. b .|. c .|. d .|. e .|. g)
-    g = e `xor` eg
-    bd = four `xor` one
-    eg = eight `xor` (four .|. seven)
+        decoded =
+          decodeSegment a segmentA
+            .|. decodeSegment b segmentB
+            .|. decodeSegment c segmentC
+            .|. decodeSegment d segmentD
+            .|. decodeSegment e segmentE
+            .|. decodeSegment f segmentF
+            .|. decodeSegment g segmentG
+        decodeSegment source target
+          | segments .&. source > 0 = target
+          | otherwise = 0
+        TranslationTable {..} = decodeTranslationTable patterns
 
-countNumbersWithUniqueSegments :: [Digit] -> Int
+countNumbersWithUniqueSegments :: [Segments] -> Int
 countNumbersWithUniqueSegments = foldl count 0
   where
-    count n (Digit segments)
+    count n segments
       | numSegments segments `elem` [2, 3, 4, 7] = succ n
-      | otherwise = n 
+      | otherwise = n
 
 parseNotes :: [String] -> Notes
 parseNotes = fmap parseNote
   where
     parseNote str =
       let [patternStr, digitStr] = splitOn "|" str
-          patterns = Pattern . mkSegments <$> words patternStr
-          digits = Digit . mkSegments <$> words digitStr
+          patterns = mkSegments <$> words patternStr
+          digits = mkSegments <$> words digitStr
        in Note {..}
 
 main :: IO ()
 main = do
- input <- getContents
- let notes = parseNotes $ lines input
-     allDigits = mconcat $ fmap digits notes
-     decodedNotes = decodeNote <$> notes
- print $ "part 1 = " ++ show (countNumbersWithUniqueSegments allDigits)
- print $ "part 2 = " ++ show (sum decodedNotes)
+  input <- getContents
+  let notes = parseNotes $ lines input
+      allDigits = mconcat $ fmap digits notes
+      decodedNotes = decodeNote <$> notes
+  print $ "part 1 = " ++ show (countNumbersWithUniqueSegments allDigits)
+  print $ "part 2 = " ++ show (sum decodedNotes)
