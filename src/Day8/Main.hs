@@ -107,14 +107,12 @@ findKnownSegments patterns =
 decodeTranslationTable :: [Segments] -> TranslationTable
 decodeTranslationTable patterns =
   let a = seven `xor` one
-      b = d `xor` bd
+      b = d `xor` (four `xor` one)
       c = eight `xor` six
       d = eight `xor` zero
       e = eight `xor` nine
       f = eight `xor` (a .|. b .|. c .|. d .|. e .|. g)
-      g = e `xor` eg
-      bd = four `xor` one
-      eg = eight `xor` (four .|. seven)
+      g = e `xor` (eight `xor` (four .|. seven))
    in TranslationTable {..}
   where
     KnownSegments {..} = findKnownSegments patterns
