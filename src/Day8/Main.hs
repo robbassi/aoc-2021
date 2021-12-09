@@ -21,17 +21,14 @@ data Note = Note
   }
   deriving (Show)
 
-type Notes = [Note]
-
-data KnownSegments = KnownSegments
+data KnownDigits = KnownDigits
   { zero :: Segments,
     one :: Segments,
     four :: Segments,
     six :: Segments,
     seven :: Segments,
     eight :: Segments,
-    nine :: Segments,
-    sixSegmentDigits :: [Segments]
+    nine :: Segments
   }
   deriving (Show)
 
@@ -82,10 +79,8 @@ markSegment 'e' = (.|. segmentE)
 markSegment 'f' = (.|. segmentF)
 markSegment 'g' = (.|. segmentG)
 
--- we have an extra bit
-
-numSegments :: Segments -> Int
-numSegments segments = foldl countOnes 0 [0 .. 6]
+litSegments :: Segments -> Int
+litSegments segments = foldl countOnes 0 [0 .. 6]
   where
     countOnes n i
       | bit i .&. segments > 0 = succ n
@@ -94,21 +89,21 @@ numSegments segments = foldl countOnes 0 [0 .. 6]
 lookup' :: Ord k => k -> Map k a -> a
 lookup' k = fromJust . M.lookup k
 
-findKnownSegments :: [Segments] -> KnownSegments
-findKnownSegments patterns =
+findKnownDigits :: [Segments] -> KnownDigits
+findKnownDigits patterns =
   let one = lookup' 2 patternsByLength
       four = lookup' 4 patternsByLength
       seven = lookup' 3 patternsByLength
       eight = lookup' 7 patternsByLength
       -- the only six segment number whose length is 2 off from four is nine
-      ([nine], zeroOrSix) = partition ((== 2) . numSegments . xor four) sixSegmentDigits
+      ([nine], zeroOrSix) = partition ((== 2) . litSegments . xor four) sixSegmentDigits
       -- zero is a perfect superset of one, six is not
       ([zero], [six]) = partition ((== one) . (.&. one)) zeroOrSix
-   in KnownSegments {..}
+   in KnownDigits {..}
   where
     patternsByLength = M.fromList $ map indexByLength patterns
-    indexByLength p = (numSegments p, p)
-    sixSegmentDigits = filter ((== 6) . numSegments) patterns
+    indexByLength p = (litSegments p, p)
+    sixSegmentDigits = filter ((== 6) . litSegments) patterns
 
 decodeTranslationTable :: [Segments] -> TranslationTable
 decodeTranslationTable patterns =
@@ -121,7 +116,7 @@ decodeTranslationTable patterns =
       g = e `xor` (eight `xor` (four .|. seven))
    in TranslationTable {..}
   where
-    KnownSegments {..} = findKnownSegments patterns
+    KnownDigits {..} = findKnownDigits patterns
 
 decodeNote :: Note -> Int
 decodeNote Note {..} = foldl calculateDigit 0 digits
@@ -146,10 +141,10 @@ countNumbersWithUniqueSegments :: [Segments] -> Int
 countNumbersWithUniqueSegments = foldl count 0
   where
     count n segments
-      | numSegments segments `elem` [2, 3, 4, 7] = succ n
+      | litSegments segments `elem` [2, 3, 4, 7] = succ n
       | otherwise = n
 
-parseNotes :: [String] -> Notes
+parseNotes :: [String] -> [Note]
 parseNotes = fmap parseNote
   where
     parseNote str =
