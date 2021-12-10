@@ -103,3 +103,13 @@ executable aoc-day9
                      , containers
   extensions:
     RecordWildCards
+
+executable aoc-day10
+  hs-source-dirs:      src
+  main-is:             Day10/Main.hs
+  default-language:    Haskell2010
+  build-depends:       base >= 4.7 && < 5
+                     , split
+                     , containers
+  extensions:
+    RecordWildCards
