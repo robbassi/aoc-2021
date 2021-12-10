@@ -16,16 +16,19 @@ data Heightmap = Heightmap
   }
   deriving Show
 
-get :: Heightmap -> Int -> Int -> Int
-get Heightmap {..} x y = heights !! index
+get :: Heightmap -> Point -> Int
+get Heightmap {..} (x,y) = heights !! index
   where
     index = x + y * width
 
-getNeighbours :: Heightmap -> Int -> Int -> [Point]
-getNeighbours Heightmap {..} x y = filter valid allNeightbours
+getNeighbours :: Heightmap -> Point -> [Point]
+getNeighbours Heightmap {..} (x,y) = filter valid allNeightbours
   where
     allNeightbours = [(x, pred y), (x, succ y), (pred x, y) ,(succ x, y)]
     valid (x, y) = x >= 0 && x < width && y >= 0 && y < height
+
+allPoints :: Heightmap -> [Point]
+allPoints Heightmap {..} = (,) <$> [0..pred width] <*> [0..pred height]
 
 parseHeightMap :: String -> Heightmap
 parseHeightMap input = Heightmap {..}
@@ -37,18 +40,16 @@ parseHeightMap input = Heightmap {..}
     heights = read <$> nums
 
 lowPoints :: Heightmap -> [Point]
-lowPoints hm@Heightmap {..} =
-  foldl scanRow [] [0..pred width]
+lowPoints hm@Heightmap {..} = foldl checkNeighbours [] $ allPoints hm
   where
-    scanRow points x = foldl (flip $ checkNeighbours x) points [0..pred height]
-    checkNeighbours x y points =
-      let neighbours = getNeighbours hm x y
-          neighbourHeights = uncurry (get hm) <$> neighbours
-          height = get hm x y
+    checkNeighbours low point =
+      let neighbours = getNeighbours hm point
+          neighbourHeights = get hm <$> neighbours
+          height = get hm point
           taller = filter (> height) neighbourHeights
        in if length taller == length neighbourHeights
-            then (x,y) : points
-            else points
+            then point : low
+            else low
 
 riskLevel :: Int -> Int
 riskLevel = succ
@@ -58,15 +59,16 @@ findBasins hm@Heightmap {..} = (points, basins)
   where
     points = lowPoints hm
     basins = findConnected <$> points
-    getBasinNeighbours x y = filter ((/= 9) . uncurry (get hm)) $ getNeighbours hm x y
-    findConnected (x,y) = go (S.singleton (x,y)) (getBasinNeighbours x y)
+    getBasinNeighbours point = filter notTooTall $ getNeighbours hm point
       where
-        go :: Set Point -> [Point] -> Basin
+        notTooTall point = get hm point < 9
+    findConnected point = go (S.singleton point) (getBasinNeighbours point)
+      where
         go ps [] = ps
         go ps next = go ps' unvisitedNeightbours
           where
             ps' = foldl (flip S.insert) ps next
-            nextNeightbours = mconcat $ fmap (uncurry getBasinNeighbours) next
+            nextNeightbours = mconcat $ fmap getBasinNeighbours next
             unvisitedNeightbours = filter (not . (`S.member` ps)) nextNeightbours
 
 main :: IO ()
@@ -74,8 +76,7 @@ main = do
   input <- getContents
   let heightMap = parseHeightMap input
       (points, basins) = findBasins heightMap
-      getHeight = uncurry $ get heightMap
-      heights = map getHeight points
+      heights = map (get heightMap) points
       riskLevelsSum = sum $ fmap riskLevel heights
       (top1 : top2 : top3 : _) = reverse $ sort $ fmap S.size basins
       top3Product = top1 * top2 * top3
