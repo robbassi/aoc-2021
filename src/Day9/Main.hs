@@ -58,17 +58,17 @@ findBasins :: Heightmap -> ([Point], [Basin])
 findBasins hm@Heightmap {..} = (points, basins)
   where
     points = lowPoints hm
-    basins = findConnected <$> points
+    basins = exploreBasin <$> points
     getBasinNeighbours point = filter notTooTall $ getNeighbours hm point
       where
         notTooTall point = get hm point < 9
-    findConnected point = go (S.singleton point) (getBasinNeighbours point)
+    exploreBasin point = scanNeightbours (S.singleton point) (getBasinNeighbours point)
       where
-        go ps [] = ps
-        go ps next = go ps' unvisitedNeightbours
+        scanNeightbours ps [] = ps
+        scanNeightbours ps next = scanNeightbours ps' unvisitedNeightbours
           where
             ps' = foldl (flip S.insert) ps next
-            nextNeightbours = mconcat $ fmap getBasinNeighbours next
+            nextNeightbours = getBasinNeighbours =<< next
             unvisitedNeightbours = filter (not . (`S.member` ps)) nextNeightbours
 
 main :: IO ()
@@ -81,7 +81,5 @@ main = do
       (top1 : top2 : top3 : _) = reverse $ sort $ fmap S.size basins
       top3Product = top1 * top2 * top3
   print $ "part 1 = " ++ show riskLevelsSum
-  -- print basins
-  -- print $ fmap S.size basins
   print $ "part 2 = " ++ show top3Product
 
