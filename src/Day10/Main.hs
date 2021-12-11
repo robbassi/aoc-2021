@@ -42,14 +42,14 @@ zeroErrors = SyntaxErrors 0 0 0 0
 findCorruptDelimiter :: [Delimiter] -> Maybe DelimiterType
 findCorruptDelimiter = fst . foldl find (Nothing, [])
   where
-    find answer@(Just _, _) _ = answer
-    -- init
+    find found@(Just _, _) _ = found
+    -- empty, singleton list
     find (Nothing, []) (Open delim) = (Nothing, [delim])
     -- invalid, starts with Close
     find (Nothing, []) (Close delim) = (Just delim, [])
-    -- push
+    -- open, add delimiter to stack
     find (Nothing, stack) (Open delim) = (Nothing, delim : stack)
-    -- pop
+    -- close, pop stack and ensure the delimiters match
     find (Nothing, stack@(delim : open)) (Close delim')
       | delim /= delim' = (Just delim', stack)
       | otherwise = (Nothing, open)
@@ -64,11 +64,8 @@ analyzeLines lines = partitionEithers $ map classify lines
 autocomplete :: IncompleteLine -> Completion
 autocomplete (IncompleteLine delims) = Completion $ foldl closeOpenChunks [] delims
   where
-    -- init
     closeOpenChunks [] (Open delim) = [delim]
-    -- push
     closeOpenChunks stack (Open delim) = delim : stack
-    -- pop
     closeOpenChunks (_ : open) (Close _) = open
 
 computeErrorScore :: [CorruptLine] -> Int
