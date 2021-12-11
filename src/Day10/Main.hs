@@ -2,7 +2,8 @@ module Main where
 
 import Data.Maybe (catMaybes, isNothing)
 import Data.Foldable (for_)
-import Data.List (sort)
+import Data.List (sort, subsequences)
+import Data.Either (partitionEithers)
 
 data Delimiter
   = Open DelimiterType
@@ -16,6 +17,15 @@ data DelimiterType
   | AngleBracket
   deriving (Show, Eq)
 
+newtype CorruptLine = InvalidClose DelimiterType
+  deriving Show
+
+newtype IncompleteLine = IncompleteLine [Delimiter]
+  deriving Show
+
+newtype Completion = Completion [DelimiterType]
+  deriving Show
+
 data SyntaxErrors = SyntaxErrors
   { parens :: Int
   , brackets :: Int
@@ -25,43 +35,49 @@ data SyntaxErrors = SyntaxErrors
   deriving Show
 
 type NavigationSubsystem = [[Delimiter]]
-type IncompleteLine = [Delimiter]
 
 zeroErrors :: SyntaxErrors
 zeroErrors = SyntaxErrors 0 0 0 0
 
 findCorruptDelimiter :: [Delimiter] -> Maybe DelimiterType
-findCorruptDelimiter = fst . foldl f (Nothing, [])
+findCorruptDelimiter = fst . foldl find (Nothing, [])
   where
-    f answer@(Just _, _) _ = answer
+    find answer@(Just _, _) _ = answer
     -- init
-    f (Nothing, []) (Open delim) = (Nothing, [delim])
+    find (Nothing, []) (Open delim) = (Nothing, [delim])
     -- invalid, starts with Close
-    f (Nothing, []) (Close delim) = (Just delim, [])
+    find (Nothing, []) (Close delim) = (Just delim, [])
     -- push
-    f (Nothing, stack) (Open delim) = (Nothing, delim : stack)
+    find (Nothing, stack) (Open delim) = (Nothing, delim : stack)
     -- pop
-    f (Nothing, stack@(delim : open)) (Close delim')
+    find (Nothing, stack@(delim : open)) (Close delim')
       | delim /= delim' = (Just delim', stack)
       | otherwise = (Nothing, open)
 
-autocomplete :: IncompleteLine -> [DelimiterType]
-autocomplete = foldl f []
+analyzeLines :: NavigationSubsystem -> ([CorruptLine], [IncompleteLine])
+analyzeLines lines = partitionEithers $ map classify lines
+  where
+    classify line = case findCorruptDelimiter line of
+      Just delim -> Left $ InvalidClose delim
+      Nothing -> Right $ IncompleteLine line
+
+autocomplete :: IncompleteLine -> Completion
+autocomplete (IncompleteLine delims) = Completion $ foldl closeOpenChunks [] delims
   where
     -- init
-    f [] (Open delim) = [delim]
+    closeOpenChunks [] (Open delim) = [delim]
     -- push
-    f stack (Open delim) = delim : stack
+    closeOpenChunks stack (Open delim) = delim : stack
     -- pop
-    f (_ : open) (Close _) = open
+    closeOpenChunks (_ : open) (Close _) = open
 
-computeErrorScore :: [DelimiterType] -> Int
+computeErrorScore :: [CorruptLine] -> Int
 computeErrorScore delims =
   let SyntaxErrors {..} = mkSyntaxErrors delims
    in parens * 3 + brackets * 57 + braces * 1197 + angleBrackets * 25137
 
-computeAutocompleteScore :: [DelimiterType] -> Int
-computeAutocompleteScore = foldl computeScore 0
+computeAutocompleteScore :: Completion -> Int
+computeAutocompleteScore (Completion delims) = foldl computeScore 0 delims
   where
     computeScore errorScore d = errorScore * 5 + delimScore d
     delimScore Paren = 1
@@ -69,13 +85,13 @@ computeAutocompleteScore = foldl computeScore 0
     delimScore Brace = 3
     delimScore AngleBracket = 4
 
-mkSyntaxErrors :: [DelimiterType] -> SyntaxErrors
-mkSyntaxErrors = foldl collect zeroErrors
+mkSyntaxErrors :: [CorruptLine] -> SyntaxErrors
+mkSyntaxErrors = foldl increment zeroErrors
   where
-    collect SyntaxErrors {..} Paren = SyntaxErrors {parens = succ parens, ..}
-    collect SyntaxErrors {..} Bracket = SyntaxErrors {brackets = succ brackets, ..}
-    collect SyntaxErrors {..} Brace = SyntaxErrors {braces = succ braces, ..}
-    collect SyntaxErrors {..} AngleBracket = SyntaxErrors {angleBrackets = succ angleBrackets, ..}
+    increment SyntaxErrors {..} (InvalidClose Paren) = SyntaxErrors {parens = succ parens, ..}
+    increment SyntaxErrors {..} (InvalidClose Bracket) = SyntaxErrors {brackets = succ brackets, ..}
+    increment SyntaxErrors {..} (InvalidClose Brace) = SyntaxErrors {braces = succ braces, ..}
+    increment SyntaxErrors {..} (InvalidClose AngleBracket) = SyntaxErrors {angleBrackets = succ angleBrackets, ..}
 
 parseNavigationSubsystem :: String -> NavigationSubsystem
 parseNavigationSubsystem sourceCode = map parseChunk chunks
@@ -95,18 +111,10 @@ main :: IO ()
 main = do
   input <- getContents
   let subsystem = parseNavigationSubsystem input
-      mCorruptLines = map (\line -> (findCorruptDelimiter line, line)) subsystem
-      corruptDelimiters = catMaybes $ fst <$> mCorruptLines
-      incompleteLines = map snd $ filter (isNothing . fst) mCorruptLines
+      (corruptLines, incompleteLines) = analyzeLines subsystem
       completions = autocomplete <$> incompleteLines
-      errorScore = computeErrorScore corruptDelimiters
+      errorScore = computeErrorScore corruptLines
       autocompleteScores = sort $ computeAutocompleteScore <$> completions
       middleAutocompleteScore = autocompleteScores !! (length autocompleteScores `div` 2)
-  for_ corruptDelimiters $ \d ->
-    print $ "  corrupt: " ++ show d
-  print $ "part = " ++ show errorScore
-  for_ completions $ \c ->
-    print $ "  completion: " ++ show c
-  for_ autocompleteScores $ \score ->
-    print $ "  score: " ++ show score
+  print $ "part 1 = " ++ show errorScore
   print $ "part 2 = " ++ show middleAutocompleteScore
