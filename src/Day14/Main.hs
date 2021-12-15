@@ -56,13 +56,13 @@ mkFrequencies (t : template) =
     inc m k = M.insertWith (+) k 1 m
 
 simulate :: InsertionRules -> Frequencies -> Int -> Frequencies
-simulate rules init steps = foldl run init [1 .. steps]
+simulate _ answer 0 = answer
+simulate rules Frequencies {..} steps = simulate rules next (pred steps)
   where
-    run Frequencies {..} _ =
-      let updates = transformPair <$> M.toList pairFrequencies
-          pairFrequencies' = M.fromListWith (+) $ mconcat $ fst <$> updates
-          elementFrequencies' = foldl add elementFrequencies $ snd <$> updates
-       in Frequencies pairFrequencies' elementFrequencies'
+    next = Frequencies pairFrequencies' elementFrequencies'
+    updates = transformPair <$> M.toList pairFrequencies
+    pairFrequencies' = M.fromListWith (+) $ mconcat $ fst <$> updates
+    elementFrequencies' = foldl add elementFrequencies $ snd <$> updates
     transformPair ((a, b), n) =
       let Just c = M.lookup (a, b) rules
        in ([((a, c), n), ((c, b), n)], (c, n))
@@ -71,7 +71,7 @@ simulate rules init steps = foldl run init [1 .. steps]
 computeAnswer :: Frequencies -> Int
 computeAnswer Frequencies {..} =
   let quantity = sort $ snd <$> M.toList elementFrequencies
-   in head quantity - last quantity
+   in last quantity - head quantity
 
 parseInsertionRules :: [String] -> InsertionRules
 parseInsertionRules = foldl addRule M.empty
