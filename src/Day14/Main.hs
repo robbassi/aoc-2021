@@ -60,12 +60,12 @@ simulate _ answer 0 = answer
 simulate rules Frequencies {..} steps = simulate rules next (pred steps)
   where
     next = Frequencies pairFrequencies' elementFrequencies'
-    updates = transformPair <$> M.toList pairFrequencies
-    pairFrequencies' = M.fromListWith (+) $ mconcat $ fst <$> updates
-    elementFrequencies' = foldl add elementFrequencies $ snd <$> updates
-    transformPair ((a, b), n) =
+    (pairs, elements) = foldl counts ([], []) $ M.toList pairFrequencies
+    pairFrequencies' = M.fromListWith (+) pairs
+    elementFrequencies' = foldl add elementFrequencies elements
+    counts (ps, es) ((a, b), n) =
       let Just c = M.lookup (a, b) rules
-       in ([((a, c), n), ((c, b), n)], (c, n))
+       in (((a, c), n) : ((c, b), n) : ps, (c, n) : es)
     add m (k, v) = M.insertWith (+) k v m
 
 computeAnswer :: Frequencies -> Int
