@@ -46,25 +46,30 @@ data Frequencies = Frequencies
   }
   deriving (Show)
 
+inc :: (Ord k, Num v) => Map k v -> k -> Map k v
+inc m k = M.insertWith (+) k 1 m
+
+add :: (Ord k, Num v) => Map k v -> (k, v) -> Map k v
+add m (k, v) = M.insertWith (+) k v m
+
 mkFrequencies :: String -> Frequencies
 mkFrequencies (t : template) =
   let pairFrequencies = fst $ foldl updateCount (M.empty, t) template
-      elementFrequencies = foldl (\m c -> M.insertWith (+) c 1 m) M.empty (t : template)
+      elementFrequencies = foldl inc M.empty (t : template)
    in Frequencies {..}
   where
-    updateCount (m, a) b = (M.insertWith (+) (a, b) 1 m, b)
+    updateCount (m, a) b = (inc m (a, b), b)
 
 simulate :: InsertionRules -> Frequencies -> Int -> Frequencies
 simulate rules init steps = foldl run init [1 .. steps]
   where
     run Frequencies {..} _ =
-      let pairsAndCounts = transformPair <$> M.toList pairFrequencies
-          pairFrequencies' = M.fromListWith (+) $ foldl (\a b -> a `mappend` fst b) [] pairsAndCounts
-          elementFrequencies' = foldl (\m (k, v) -> M.insertWith (+) k v m) elementFrequencies $ snd <$> pairsAndCounts
+      let updates = transformPair <$> M.toList pairFrequencies
+          pairFrequencies' = M.fromListWith (+) $ mconcat $ fst <$> updates
+          elementFrequencies' = foldl add elementFrequencies $ snd <$> updates
        in Frequencies pairFrequencies' elementFrequencies'
-    transformPair (p, n) =
-      let Just c = M.lookup p rules
-          (a, b) = p
+    transformPair ((a, b), n) =
+      let Just c = M.lookup (a, b) rules
        in ([((a, c), n), ((c, b), n)], (c, n))
 
 computeAnswer :: Frequencies -> Int
