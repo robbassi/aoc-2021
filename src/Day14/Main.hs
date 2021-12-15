@@ -1,6 +1,6 @@
 module Main where
 
-import Data.List (head, last, sortOn)
+import Data.List (head, last, sort)
 import Data.List.Split (splitOn)
 import Data.Map (Map)
 import qualified Data.Map as M
@@ -70,10 +70,8 @@ simulate rules init steps = foldl run init [1 .. steps]
 
 computeAnswer :: Frequencies -> Int
 computeAnswer Frequencies {..} =
-  let sorted = sortOn snd $ M.toList elementFrequencies
-      (_, lc) = head sorted
-      (_, mc) = last sorted
-   in mc - lc
+  let quantity = sort $ snd <$> M.toList elementFrequencies
+   in head quantity - last quantity
 
 parseInsertionRules :: [String] -> InsertionRules
 parseInsertionRules = foldl addRule M.empty
