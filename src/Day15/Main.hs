@@ -1,15 +1,11 @@
 module Main where
 
 import Data.Char (ord)
-import Data.Foldable (minimumBy)
-import Data.Function (on)
 import Data.Map (Map)
 import qualified Data.Map as M
 import Data.Maybe (fromJust)
 import Data.PQueue.Min (MinQueue)
 import qualified Data.PQueue.Min as PQ
-import Data.Set (Set)
-import qualified Data.Set as S
 
 type Position = (Int, Int)
 
