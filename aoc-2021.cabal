@@ -142,3 +142,13 @@ executable aoc-day14
                      , containers
   extensions:
     RecordWildCards
+
+executable aoc-day15
+  hs-source-dirs:      src
+  main-is:             Day15/Main.hs
+  default-language:    Haskell2010
+  build-depends:       base >= 4.7 && < 5
+                     , containers
+                     , pqueue
+  extensions:
+    RecordWildCards
