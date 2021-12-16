@@ -1,61 +1,80 @@
 module Main where
 
 import Data.Char (ord)
-import Data.Map (Map)
-import qualified Data.Map as M
-import Data.Set (Set)
-import qualified Data.Set as S
 import Data.Foldable (minimumBy)
 import Data.Function (on)
+import Data.Map (Map)
+import qualified Data.Map as M
+import Data.Maybe (fromJust)
+import Data.PQueue.Min (MinQueue)
+import qualified Data.PQueue.Min as PQ
+import Data.Set (Set)
+import qualified Data.Set as S
 
-type Position = (Int,Int)
+type Position = (Int, Int)
+
 type RiskLevels = Map Position Int
+
 type PrevPositions = Map Position Position
 
 data RiskLevelMap = RiskLevelMap
-  { riskLevels :: RiskLevels
-  , maxX :: Int
-  , maxY :: Int
+  { riskLevels :: RiskLevels,
+    maxX :: Int,
+    maxY :: Int
   }
-  deriving Show
+  deriving (Show)
 
-findShortestPath :: RiskLevelMap -> Position -> Position -> (Int, [Position])
-findShortestPath RiskLevelMap {..} start end = (cost, buildPath shortestPath [] (Just end))
+data Move = Move Position Int
+  deriving (Show, Eq)
+
+instance Ord Move where
+  compare (Move _ r) (Move _ r') = compare r r'
+
+findLowestRisk :: RiskLevelMap -> Position -> Position -> Int
+findLowestRisk RiskLevelMap {..} start end = explore risk prevPositions unexplored
   where
-    allPositions = (,) <$> [0..maxX] <*> [0..maxY]
-    unexplored = S.fromList allPositions
+    -- start with the source
+    unexplored = PQ.singleton (start, 0)
     prevPositions = M.empty
+    -- we don't take any risk for the start position
     risk = M.singleton start 0
-    buildPath _ path Nothing = path
-    buildPath prev path (Just next) = buildPath prev (next:path) (M.lookup next prev)
-    (cost, shortestPath) = explore risk prevPositions unexplored
+    -- explore the map until we hit the end
     explore risk prev unexplored =
-      if S.null unexplored
-        then (M.findWithDefault (error "no answer") end risk, prev)
-        else
-          let next = minimumBy (compare `on` (\k -> M.findWithDefault maxBound k risk)) unexplored
-              allNeightbours = getNeighbours next
-              unexploredNeighbours = filter (`S.member` unexplored) allNeightbours
-              (risk', prev') = foldl f (risk, prev) unexploredNeighbours
-              f (risk, prev) neighbour =
-                let Just r = M.lookup next risk
-                    neightbourR = M.findWithDefault maxBound neighbour risk
-                in case M.lookup neighbour riskLevels of
-                    Just neighbourRisk ->
-                      let r' = r + neighbourRisk
-                      in if r' < neightbourR
-                        then (M.insert neighbour r' risk, M.insert neighbour next prev)
-                        else (risk, prev)
-          in explore risk' prev' (S.delete next unexplored)
-    getNeighbours (x, y) = filter valid allNeighbours
+      let -- grab the min position from the queue
+          ((currentPosition, _), unexplored') = PQ.deleteFindMin unexplored
+          -- get next positions the explore
+          nextPositions = getNeighbours currentPosition
+          -- explore the map, and return the new state as we find better moves
+          searchFrontier (risk, prev, unexplored) nextPosition =
+            let currentRisk = lookup risk currentPosition
+                nextRiskTotal = M.findWithDefault maxBound nextPosition risk
+                nextRiskBase = lookup riskLevels nextPosition
+                alternativeRisk = currentRisk + nextRiskBase
+             in -- if we find a better move, update the state
+                if alternativeRisk < nextRiskTotal
+                  then
+                    ( -- record the total risk for this position
+                      M.insert nextPosition alternativeRisk risk,
+                      -- record the prev position for the next position
+                      M.insert nextPosition currentPosition prev,
+                      -- update the queue
+                      PQ.insert (nextPosition, alternativeRisk) unexplored
+                    )
+                  else (risk, prev, unexplored)
+          -- compute the new state
+          (risk', prev', unexplored'') = foldl searchFrontier (risk, prev, unexplored') nextPositions
+       in -- check if we found the end
+          if currentPosition == end
+            then -- return the total risk for the optimal path
+              lookup risk' end
+            else -- continue exploring
+              explore risk' prev' unexplored''
+    getNeighbours (x, y) = filter valid nextPositions
       where
-        allNeighbours =
-          [ (x, pred y),
-            (x, succ y),
-            (pred x, y),
-            (succ x, y)
-          ]
+        nextPositions = [(x, pred y), (x, succ y), (pred x, y), (succ x, y)]
         valid (x, y) = x >= 0 && x <= maxX && y >= 0 && y <= maxY
+    -- lookup that assumes existense
+    lookup m = fromJust . flip M.lookup m
 
 parseRiskLevelMap :: String -> RiskLevelMap
 parseRiskLevelMap str = RiskLevelMap {..}
@@ -69,10 +88,28 @@ parseRiskLevelMap str = RiskLevelMap {..}
       let energyLevel = subtract 48 $ ord $ rows !! y !! x
        in M.insert (x, y) energyLevel levels
 
+expandMap :: RiskLevelMap -> RiskLevelMap
+expandMap RiskLevelMap {..} = RiskLevelMap riskLevels' maxX' maxY'
+  where
+    maxX' = pred $ succ maxX * 5
+    maxY' = pred $ succ maxY * 5
+    riskLevels' = M.fromList $ generatePositions =<< M.toList riskLevels
+    generatePositions ((x, y), r) = foldl addScaledPosition [] offsets
+      where
+        addScaledPosition ps (dx, dy) =
+          let x' = x + succ maxX * dx
+              y' = y + succ maxY * dy
+              r' = wrapRisk (r + dx + dy)
+           in ((x', y'), r') : ps
+    offsets = (,) <$> [0 .. 4] <*> [0 .. 4]
+    wrapRisk n = if n > 9 then succ (n `mod` 10) else n
+
 main :: IO ()
 main = do
   input <- getContents
-  let riskLevelMap@RiskLevelMap {..} = parseRiskLevelMap input
-      (cost, shortestPath) = findShortestPath riskLevelMap (0, 0) (maxX, maxY)
-  print riskLevels
-  print cost
+  let smallMap = parseRiskLevelMap input
+      costSmall = findLowestRisk smallMap (0, 0) (maxX smallMap, maxY smallMap)
+      fullMap = expandMap smallMap
+      costFull = findLowestRisk fullMap (0, 0) (maxX fullMap, maxY fullMap)
+  print $ "part 1 = " ++ show costSmall
+  print $ "part 2 = " ++ show costFull
