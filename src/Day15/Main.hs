@@ -34,14 +34,14 @@ findLowestRisk :: RiskLevelMap -> Position -> Position -> Int
 findLowestRisk RiskLevelMap {..} start end = explore risk prevPositions unexplored
   where
     -- start with the source
-    unexplored = PQ.singleton (start, 0)
+    unexplored = PQ.singleton (Move start 0)
     prevPositions = M.empty
     -- we don't take any risk for the start position
     risk = M.singleton start 0
     -- explore the map until we hit the end
     explore risk prev unexplored =
       let -- grab the min position from the queue
-          ((currentPosition, _), unexplored') = PQ.deleteFindMin unexplored
+          (Move currentPosition _, unexplored') = PQ.deleteFindMin unexplored
           -- get next positions the explore
           nextPositions = getNeighbours currentPosition
           -- explore the map, and return the new state as we find better moves
@@ -58,7 +58,7 @@ findLowestRisk RiskLevelMap {..} start end = explore risk prevPositions unexplor
                       -- record the prev position for the next position
                       M.insert nextPosition currentPosition prev,
                       -- update the queue
-                      PQ.insert (nextPosition, alternativeRisk) unexplored
+                      PQ.insert (Move nextPosition alternativeRisk) unexplored
                     )
                   else (risk, prev, unexplored)
           -- compute the new state
