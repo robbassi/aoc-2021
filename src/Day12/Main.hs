@@ -16,23 +16,11 @@ type Path = [Cave]
 
 type CaveMap = Map Cave [Cave]
 
-findAllPaths :: CaveMap -> [Path]
-findAllPaths caveMap = explore S.empty [] [] "start"
+findAllPaths :: Int -> CaveMap -> [Path]
+findAllPaths maxSmallCaveVisits caveMap =
+  explore maxSmallCaveVisits M.empty [] [] "start"
   where
-    explore visited path paths "end" = reverse ("end" : path) : paths
-    explore visited path paths curr =
-      let children = M.findWithDefault [] curr caveMap
-          unvisited = filter (not . (`elem` visited)) children
-          visited' =
-            if isLower (head curr)
-              then S.insert curr visited
-              else visited
-          paths' = explore visited' (curr : path) paths =<< unvisited
-       in paths ++ paths'
-
-findAllPaths' :: CaveMap -> [Path]
-findAllPaths' caveMap = explore 2 M.empty [] [] "start"
-  where
+    minCaveVisits = 1
     explore maxSmallCaves visited path paths "end" = reverse ("end" : path) : paths
     explore maxSmallCaves visited path paths curr =
       let children = M.findWithDefault [] curr caveMap
@@ -40,8 +28,14 @@ findAllPaths' caveMap = explore 2 M.empty [] [] "start"
             if isLower (head curr)
               then M.insertWith (+) curr 1 visited
               else visited
-          maxSmallCaveVisits = maximum $ snd <$> M.toList visited'
-          maxSmallCaves' = bool 1 2 (maxSmallCaveVisits < 2)
+          visits = M.findWithDefault 0 curr visited'
+          maxSmallCaves' =
+            bool
+              maxSmallCaveVisits
+              minCaveVisits
+              ( maxSmallCaves < maxSmallCaveVisits
+                  || maxSmallCaves == maxSmallCaveVisits && visits == maxSmallCaveVisits
+              )
           checkVisited "start" = False
           checkVisited cave = (< maxSmallCaves') $ M.findWithDefault 0 cave visited'
           unvisited = filter checkVisited children
@@ -60,7 +54,7 @@ main :: IO ()
 main = do
   input <- getContents
   let caveMap = parseCaveMap input
-      allPaths = findAllPaths caveMap
-      allPaths' = findAllPaths' caveMap
+      allPaths = findAllPaths 1 caveMap
+      allPaths' = findAllPaths 2 caveMap
   print $ "part 1 = " ++ show (length allPaths)
   print $ "part 2 = " ++ show (length allPaths')
