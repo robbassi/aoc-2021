@@ -31,10 +31,10 @@ findAllPaths maxSmallCaveVisits caveMap =
               maxSmallCaveVisits
               minCaveVisits
               (smallCaveLimit < maxSmallCaveVisits || visits == maxSmallCaveVisits)
-          checkVisited "start" = False
-          checkVisited cave = (< smallCaveLimit') $ M.findWithDefault 0 cave visited'
+          shouldVisit "start" = False
+          shouldVisit cave = (< smallCaveLimit') $ M.findWithDefault 0 cave visited'
           children = M.findWithDefault [] curr caveMap
-          unvisited = filter checkVisited children
+          unvisited = filter shouldVisit children
           paths' = explore smallCaveLimit' visited' (curr : path) paths =<< unvisited
        in paths ++ paths'
 
