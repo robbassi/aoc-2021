@@ -2,13 +2,11 @@ module Main where
 
 import Data.Bool (bool)
 import Data.Char (isLower)
-import Data.Foldable (for_)
 import Data.List.Split (splitOn)
 import Data.Map (Map)
 import qualified Data.Map as M
 import Data.Set (Set)
 import qualified Data.Set as S
-import Debug.Trace
 
 type Cave = String
 
