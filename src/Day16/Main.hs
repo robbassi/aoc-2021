@@ -4,10 +4,8 @@ import Data.Bits
 import Data.Functor ((<&>))
 
 type Version = Int
-type TypeId = Int
 
-data LengthType = Bits Int | Packets Int
-  deriving Show
+type TypeId = Int
 
 data Packet
   = Sum Version [Packet]
@@ -18,36 +16,36 @@ data Packet
   | LessThan Version Packet Packet
   | EqualTo Version Packet Packet
   | Literal Version Int
-  deriving Show
+  deriving (Show)
 
 data Bin = One | Zero
   deriving (Show, Eq)
 
 hexToBin :: Char -> [Bin]
-hexToBin '0' = [Zero,Zero,Zero,Zero]
-hexToBin '1' = [Zero,Zero,Zero,One]
-hexToBin '2' = [Zero,Zero,One,Zero]
-hexToBin '3' = [Zero,Zero,One,One]
-hexToBin '4' = [Zero,One,Zero,Zero]
-hexToBin '5' = [Zero,One,Zero,One]
-hexToBin '6' = [Zero,One,One,Zero]
-hexToBin '7' = [Zero,One,One,One]
-hexToBin '8' = [One,Zero,Zero,Zero]
-hexToBin '9' = [One,Zero,Zero,One]
-hexToBin 'A' = [One,Zero,One,Zero]
-hexToBin 'B' = [One,Zero,One,One]
-hexToBin 'C' = [One,One,Zero,Zero]
-hexToBin 'D' = [One,One,Zero,One]
-hexToBin 'E' = [One,One,One,Zero]
-hexToBin 'F' = [One,One,One,One]
+hexToBin '0' = [Zero, Zero, Zero, Zero]
+hexToBin '1' = [Zero, Zero, Zero, One]
+hexToBin '2' = [Zero, Zero, One, Zero]
+hexToBin '3' = [Zero, Zero, One, One]
+hexToBin '4' = [Zero, One, Zero, Zero]
+hexToBin '5' = [Zero, One, Zero, One]
+hexToBin '6' = [Zero, One, One, Zero]
+hexToBin '7' = [Zero, One, One, One]
+hexToBin '8' = [One, Zero, Zero, Zero]
+hexToBin '9' = [One, Zero, Zero, One]
+hexToBin 'A' = [One, Zero, One, Zero]
+hexToBin 'B' = [One, Zero, One, One]
+hexToBin 'C' = [One, One, Zero, Zero]
+hexToBin 'D' = [One, One, Zero, One]
+hexToBin 'E' = [One, One, One, Zero]
+hexToBin 'F' = [One, One, One, One]
 hexToBin _ = []
 
 binToDec :: [Bin] -> Int
 binToDec b = encode b 0
   where
     encode [] n = n
-    encode (Zero:rest) n = encode rest (shift n 1)
-    encode (One:rest) n = encode rest (shift n 1 + 1)
+    encode (Zero : rest) n = encode rest (shift n 1)
+    encode (One : rest) n = encode rest (shift n 1 + 1)
 
 sumVersions :: Packet -> Int
 sumVersions = go 0
@@ -83,42 +81,43 @@ readPacket hex = fst $ parsePacket $ hex >>= hexToBin
     parsePacket bits =
       let (version, typeId, bits') = parseHeader bits
        in parsePacketBody version typeId bits'
-    parseHeader (a:b:c:d:e:f:rest) =
-      let version = binToDec [a,b,c]
-          typeId = binToDec [d,e,f]
+    parseHeader (a : b : c : d : e : f : rest) =
+      let version = binToDec [a, b, c]
+          typeId = binToDec [d, e, f]
        in (version, typeId, rest)
     parsePacketBody version 4 bits =
-      let parseLiteral (Zero:a:b:c:d:rest) n =
-            (shift n 4 .|. binToDec [a,b,c,d], rest)
-          parseLiteral (One:a:b:c:d:rest) n =
-            parseLiteral rest (shift n 4 .|. binToDec [a,b,c,d])
+      let parseLiteral (Zero : a : b : c : d : rest) n =
+            (shift n 4 .|. binToDec [a, b, c, d], rest)
+          parseLiteral (One : a : b : c : d : rest) n =
+            parseLiteral rest (shift n 4 .|. binToDec [a, b, c, d])
           (num, rest) = parseLiteral bits 0
        in (Literal version num, rest)
-    parsePacketBody version typeId (Zero:bits) =
+    parsePacketBody version typeId (Zero : bits) =
       let len = fromIntegral $ binToDec $ take 15 bits
           bits' = drop 15 bits
           parseChildren [] children = reverse children
           parseChildren bits children =
             let (packet, bits') = parsePacket bits
-             in parseChildren bits' (packet:children)
+             in parseChildren bits' (packet : children)
           children = parseChildren (take len bits') []
-       in (buildOperator typeId version children, drop len bits')
-    parsePacketBody version typeId (One:bits) =
+          bits'' = drop len bits'
+       in (operator typeId version children, bits'')
+    parsePacketBody version typeId (One : bits) =
       let len = fromIntegral $ binToDec $ take 11 bits
           bits' = drop 11 bits
           parseChildren 0 bits children = (reverse children, bits)
           parseChildren packets bits children =
             let (packet, bits') = parsePacket bits
-             in parseChildren (pred packets) bits' (packet:children)
+             in parseChildren (pred packets) bits' (packet : children)
           (children, bits'') = parseChildren len bits' []
-       in (buildOperator typeId version children, bits'')
-    buildOperator 0 = Sum
-    buildOperator 1 = Product
-    buildOperator 2 = Min
-    buildOperator 3 = Max
-    buildOperator 5 = \v [a,b] -> GreaterThan v a b
-    buildOperator 6 = \v [a,b] -> LessThan v a b
-    buildOperator 7 = \v [a,b] -> EqualTo v a b
+       in (operator typeId version children, bits'')
+    operator 0 = Sum
+    operator 1 = Product
+    operator 2 = Min
+    operator 3 = Max
+    operator 5 = \v [a, b] -> GreaterThan v a b
+    operator 6 = \v [a, b] -> LessThan v a b
+    operator 7 = \v [a, b] -> EqualTo v a b
 
 main :: IO ()
 main = do
