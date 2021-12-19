@@ -152,3 +152,12 @@ executable aoc-day15
                      , pqueue
   extensions:
     RecordWildCards
+
+executable aoc-day16
+  hs-source-dirs:      src
+  main-is:             Day16/Main.hs
+  default-language:    Haskell2010
+  build-depends:       base >= 4.7 && < 5
+  extensions:
+    RecordWildCards
+
