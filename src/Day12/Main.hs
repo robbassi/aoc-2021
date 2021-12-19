@@ -21,25 +21,23 @@ findAllPaths maxSmallCaveVisits caveMap =
   explore maxSmallCaveVisits M.empty [] [] "start"
   where
     minCaveVisits = 1
-    explore maxSmallCaves visited path paths "end" = reverse ("end" : path) : paths
-    explore maxSmallCaves visited path paths curr =
-      let children = M.findWithDefault [] curr caveMap
-          visited' =
+    explore smallCaveLimit visited path paths "end" = reverse ("end" : path) : paths
+    explore smallCaveLimit visited path paths curr =
+      let visited' =
             if isLower (head curr)
               then M.insertWith (+) curr 1 visited
               else visited
           visits = M.findWithDefault 0 curr visited'
-          maxSmallCaves' =
+          smallCaveLimit' =
             bool
               maxSmallCaveVisits
               minCaveVisits
-              ( maxSmallCaves < maxSmallCaveVisits
-                  || maxSmallCaves == maxSmallCaveVisits && visits == maxSmallCaveVisits
-              )
+              (smallCaveLimit < maxSmallCaveVisits || visits == maxSmallCaveVisits)
           checkVisited "start" = False
-          checkVisited cave = (< maxSmallCaves') $ M.findWithDefault 0 cave visited'
+          checkVisited cave = (< smallCaveLimit') $ M.findWithDefault 0 cave visited'
+          children = M.findWithDefault [] curr caveMap
           unvisited = filter checkVisited children
-          paths' = explore maxSmallCaves' visited' (curr : path) paths =<< unvisited
+          paths' = explore smallCaveLimit' visited' (curr : path) paths =<< unvisited
        in paths ++ paths'
 
 parseCaveMap :: String -> CaveMap
