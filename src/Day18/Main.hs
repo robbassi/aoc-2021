@@ -1,7 +1,7 @@
 module Main where
 
 import Data.Bool (bool)
-import Data.List (sortOn)
+import Data.List (sort)
 import Debug.Trace
 
 type Depth = Int
@@ -109,12 +109,8 @@ main :: IO ()
 main = do
   input <- getContents
   let nums@(x : xs) = parseTree <$> lines input
-      add' a b
-        | a == b = ((a, b), 0)
-        | otherwise = ((a, b), magnitude $ add a b)
-      perms = add' <$> nums <*> nums
-      ((a, b), m) = head $ sortOn (negate . snd) perms
-      answer = foldl add x xs
-  print $ showTree answer
-  print $ "part 1 = " ++ show (magnitude answer)
-  print $ "part 2 = " ++ show m
+      perms = add <$> nums <*> nums
+      highestMagnitude = maximum $ magnitude <$> perms
+      total = foldl add x xs
+  print $ "part 1 = " ++ show (magnitude total)
+  print $ "part 2 = " ++ show highestMagnitude
