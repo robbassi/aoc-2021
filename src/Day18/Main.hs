@@ -19,32 +19,29 @@ succMaxDepth l r = succ $ max (nodeDepth l) (nodeDepth r)
 add :: Node -> Node -> Node
 add l@(Parent d1 _ _) r@(Parent d2 _ _) =
   let d3 = succ (max d1 d2)
-   in reduce' $ Parent d3 l r
+   in reduce $ Parent d3 l r
 
 explode :: Node -> Node
-explode p@(Parent 5 l r) =
-  let Just (a, _, _) = explodePair p in a
+explode root
+  | nodeDepth root == 5 = root'
+  | otherwise = root
   where
-    explodePair :: Node -> Maybe (Node, Int, Int)
-    explodePair (Parent 2 (Parent 1 (Leaf a) (Leaf b)) r) =
-      Just (Parent (succ $ nodeDepth r) (Leaf 0) (incLeftMost b r), a, 0)
-    explodePair (Parent 2 (Leaf l) (Parent 1 (Leaf a) (Leaf b))) =
-      Just (Parent 1 (Leaf $ l + a) (Leaf 0), 0, b)
-    explodePair (Parent d l r)
+    (root', _, _) = explode' root
+    explode' (Parent 2 (Parent 1 (Leaf a) (Leaf b)) r) =
+      (Parent (succ $ nodeDepth r) (Leaf 0) (incLeftMost b r), a, 0)
+    explode' (Parent 2 (Leaf l) (Parent 1 (Leaf a) (Leaf b))) =
+      (Parent 1 (Leaf $ l + a) (Leaf 0), 0, b)
+    explode' (Parent d l r)
       | nodeDepth l >= nodeDepth r =
-        let Just (l', ld, rd) = explodePair l
-         in Just (Parent (succMaxDepth l' r) l' (incLeftMost rd r), ld, 0)
+        let (l', ld, rd) = explode' l
+         in (Parent (succMaxDepth l' r) l' (incLeftMost rd r), ld, 0)
       | otherwise =
-        let Just (r', ld, rd) = explodePair r
-         in Just (Parent (succMaxDepth l r') (incRightMost ld l) r', 0, rd)
-    explodePair _ = Nothing
-    incLeftMost :: Int -> Node -> Node
+        let (r', ld, rd) = explode' r
+         in (Parent (succMaxDepth l r') (incRightMost ld l) r', 0, rd)
     incLeftMost v (Parent d l r) = Parent d (incLeftMost v l) r
     incLeftMost v (Leaf n) = Leaf $ n + v
-    incRightMost :: Int -> Node -> Node
     incRightMost v (Parent d l r) = Parent d l (incRightMost v r)
     incRightMost v (Leaf n) = Leaf $ n + v
-explode p = p
 
 split :: Node -> Node
 split = snd . split'
@@ -65,14 +62,14 @@ split = snd . split'
          in (True, Parent 1 (Leaf low) (Leaf high))
       | otherwise = (False, Leaf v)
 
-reduce' :: Node -> Node
-reduce' n =
-  let n' = split $ explode' n
-   in bool (reduce' n') n' (n == n')
+reduce :: Node -> Node
+reduce n =
+  let n' = split $ reduceExplode n
+   in bool (reduce n') n' (n == n')
   where
-    explode' n =
+    reduceExplode n =
       let n' = explode n
-       in bool (explode' n') n' (n == n')
+       in bool (reduceExplode n') n' (n == n')
 
 magnitude :: Node -> Int
 magnitude (Leaf n) = n
